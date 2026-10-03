@@ -1,0 +1,17 @@
+{
+  "name": "Moritz und Oskars Abenteuer",
+  "short_name": "Moritz & Oskar",
+  "description": "Ein-Knopf-Spiel: Ritter, Astronaut, Schulkind in Bützow oder junger Jedi.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1d2747",
+  "theme_color": "#1d2747",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
