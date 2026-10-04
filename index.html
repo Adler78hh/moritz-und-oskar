@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#1d2747">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Moritz & Oskar">
+<meta name="apple-mobile-web-app-title" content="Mo & Os">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}</style>
-<title>Moritz und Oskars Abenteuer</title>
+<title>Mo und Os Abenteuer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap">
@@ -61,7 +61,7 @@ button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
   touch-action:none;padding:0;transition:background-color .1s}
 #jump svg{width:42px;height:42px}
 #jump b{font-weight:800;font-size:17px;line-height:1}
-#jump small{font-weight:700;font-size:11.5px;line-height:1.1;color:var(--ink);opacity:.8}
+#jump small{font-weight:700;font-size:10.5px;white-space:nowrap;line-height:1.1;color:var(--ink);opacity:.8}
 #jump.down{transform:translateY(6px);box-shadow:0 2px 0 var(--ink)}
 #jump.shielding{background:radial-gradient(circle at 36% 30%,#ffffff 0,var(--k) 55%,var(--ink) 130%);color:var(--paper)}
 #jump.shielding small,#jump.shielding b{color:var(--paper);opacity:1}
@@ -75,16 +75,16 @@ button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 .title .big{display:block;font-size:1.45em;color:var(--gold);-webkit-text-stroke:7px var(--ink);paint-order:stroke fill;
   letter-spacing:1px;margin-top:4px}
 .lead{margin:0;font-weight:700;font-size:20px}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .card{border:4px solid var(--ink);border-radius:24px;padding:8px 8px 12px;display:flex;flex-direction:column;align-items:center;
   gap:0;box-shadow:0 6px 0 var(--ink);transition:transform .12s;min-width:0}
 .card:hover{transform:translateY(-3px) rotate(-1deg)}
 .card:active{transform:translateY(4px);box-shadow:0 2px 0 var(--ink)}
-.card.red{background:var(--red-soft)} .card.blue{background:var(--blue-soft)}
-.card canvas{width:100%;max-width:200px;aspect-ratio:200/170;height:auto;display:block}
-.card .name{font-weight:800;font-size:28px;line-height:1}
-.card.red .name{color:var(--red)} .card.blue .name{color:var(--blue)}
-.card .sub{font-weight:600;font-size:15px;color:var(--muted)}
+.card{background:var(--soft)}
+.card canvas{width:100%;max-width:150px;aspect-ratio:200/170;height:auto;display:block}
+.card .name{font-weight:800;font-size:24px;line-height:1}
+.card .name{color:var(--kc)}
+.card .sub{font-weight:600;font-size:13px;color:var(--muted);line-height:1.2}
 .roles{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .role{border:4px solid var(--ink);border-radius:999px;padding:6px 20px 6px 14px;font-weight:800;font-size:21px;background:var(--paper);
   box-shadow:0 5px 0 var(--ink);display:inline-flex;align-items:center;gap:8px}
@@ -109,7 +109,7 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
 .lv .lvbest svg{width:15px;height:15px;vertical-align:-2px}
 .record{display:inline-block;font-size:18px;background:var(--gold);border:3px solid var(--ink);border-radius:999px;padding:0 12px;vertical-align:4px;transform:rotate(-3deg)}
 .recordold{font-size:16px;color:var(--muted);vertical-align:4px}
-.card .prog{font-size:13px;font-weight:700;color:var(--ink);line-height:1.3}
+.card .prog{font-size:12px;font-weight:700;color:var(--ink);line-height:1.3}
 .lv:disabled{cursor:not-allowed;filter:grayscale(.85);opacity:.7}
 .lv .lock{width:18px;height:18px;vertical-align:-3px}
 
@@ -138,6 +138,14 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
 }
 .lv .txt{display:contents}
 @media (max-width:460px){ .lv .txt{display:flex;flex-direction:column;padding-block:8px} .lv .lvbest{align-self:flex-start} }
+@media (max-width:520px){
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .role{font-size:16px;padding:5px 10px;justify-content:center}
+  .role svg{width:20px;height:20px}
+  .card{padding:6px 4px 8px;border-radius:18px}
+  .card .sub{display:none}
+  .card .name{font-size:20px}
+}
 @media (prefers-reduced-motion:reduce){ .card,.lv{transition:none} }
 </style>
 </head>
@@ -159,7 +167,7 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
 
 <section class="screen" id="menu">
   <div class="panel">
-    <h1 class="title"><span class="m">Moritz</span> und <span class="o">Oskars</span> <span class="big">Abenteuer</span></h1>
+    <h1 class="title"><span class="m">Mo</span> &amp; <span class="o">Os</span> <span class="big">Abenteuer</span></h1>
     <p class="lead">Was möchtest du sein?</p>
     <div class="roles" role="group" aria-label="Ritter oder Astronaut">
       <button class="role" data-mode="knight" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3 4.5 5.5v6c0 4.6 3.2 8 7.5 9.5 4.3-1.5 7.5-4.9 7.5-9.5v-6z" fill="#ff8f85"/></svg>Ritter</button>
@@ -169,8 +177,7 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
     </div>
     <p class="lead">Und wer spielt?</p>
     <div class="cards">
-      <button class="card red" data-knight="oskar"><canvas width="400" height="340"></canvas><span class="name">Oskar</span><span class="sub" data-sub="rot">der rote Ritter</span><span class="prog" data-prog="oskar"></span></button>
-      <button class="card blue" data-knight="moritz"><canvas width="400" height="340"></canvas><span class="name">Moritz</span><span class="sub" data-sub="blau">der blaue Ritter</span><span class="prog" data-prog="moritz"></span></button>
+      <!-- one card per child, built from CHARS -->
     </div>
     <p class="howto" id="howto">Dein Ritter läuft von allein. <b>Kurz tippen</b>: springen. <b>Lang drücken</b>: stehen bleiben und den Schild hochhalten. Der Schild hält Feuerbälle und Eicheln ab.</p>
     <p class="tilt" id="tilt" hidden>Tipp: Das Handy quer halten, dann ist mehr zu sehen.</p>
@@ -179,7 +186,7 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
 
 <section class="screen" id="levels" hidden>
   <div class="panel">
-    <h2 id="lvTitle">Wohin reitet Oskar?</h2>
+    <h2 id="lvTitle">Wohin geht es?</h2>
     <div class="lvgrid" id="lvgrid"></div>
     <div class="row"><button class="big-btn plain" id="btnBack">Zurück zur Auswahl</button></div>
   </div>
@@ -202,10 +209,39 @@ const SPEED = 215, GRAV = 2400, JV = 900, HOLD = 0.22;
 const FONT = '"Baloo 2","Trebuchet MS","Segoe UI",sans-serif';
 const $ = id => document.getElementById(id);
 
-const KNIGHTS = {
-  oskar:  { id:'oskar',  name:'Oskar',  color:'#e8443a', dark:'#a92a2a', light:'#ff9d8f', letter:'O', hair:0 },
-  moritz: { id:'moritz', name:'Moritz', color:'#2f74e6', dark:'#1c4aa6', light:'#9cc0ff', letter:'M', hair:1 },
-};
+// All playable children. Only short names (first syllable) are shown in the game.
+// Two children share "Os": the second one is told apart by colour, hair and the label "Os W.".
+const CHARS = [
+  { id:'moritz', name:'Mo', letter:'Mo', word:'blau', sex:'m', color:'#2f74e6', dark:'#1c4aa6', light:'#9cc0ff',
+    hair:{ style:'spiky', curl:true, c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
+  { id:'oskar', name:'Os', letter:'Os', word:'rot', sex:'m', color:'#e8443a', dark:'#a92a2a', light:'#ff9d8f',
+    hair:{ style:'spiky', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
+  { id:'kilian', name:'Ki', letter:'Ki', word:'bordeauxrot', sex:'m', color:'#8e1f3a', dark:'#5e1226', light:'#d77a91',
+    hair:{ style:'wavy', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'long' },
+  { id:'finnc', name:'Finn', letter:'Finn', word:'gelb', sex:'m', color:'#f2c230', dark:'#c4931a', light:'#ffe58a', ink:'#7a4a00',
+    hair:{ style:'short', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'long' },
+  { id:'theo', name:'The', letter:'The', word:'braun', sex:'m', color:'#8a5a35', dark:'#5e3c22', light:'#c99d74',
+    hair:{ style:'bob', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'round' },
+  { id:'oskarw', name:'Os W.', letter:'Os', word:'grün', sex:'m', color:'#2f9e4f', dark:'#1f6e36', light:'#8fdca6',
+    hair:{ style:'mohawk', c:'#fff0a6', d:'#e0c25a', l:'#ffffff' }, face:'pointy' },
+  { id:'finniv', name:'Fin', letter:'Fin', word:'lindgrün', sex:'m', color:'#9ad93a', dark:'#6aa21c', light:'#d6f59e', ink:'#3d5a0a',
+    hair:{ style:'buzz', c:'#b0805a', d:'#8a5f3e', l:'#cfa47e' }, face:'round' },
+  { id:'lenia', name:'Le', letter:'Le', word:'rosa', sex:'f', color:'#ff8fb8', dark:'#d9558a', light:'#ffd0e2',
+    hair:{ style:'long', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round', glasses:true },
+  { id:'freya', name:'Fre', letter:'Fre', word:'lila', sex:'f', color:'#8b5cd6', dark:'#5f3aa0', light:'#cbb2f5',
+    hair:{ style:'longwavy', c:'#5a3a28', d:'#3a2418', l:'#8a5f45' }, face:'round' },
+];
+const KNIGHTS = Object.fromEntries(CHARS.map(k => [k.id, k]));
+// grammar helpers for the role names
+const INDECL = ['rosa', 'lila'];
+function roleLabel(k, m){
+  const adj = INDECL.includes(k.word) ? k.word : k.word + 'e';
+  if (m === 'school') return `das ${adj} Schulkind`;
+  const f = k.sex === 'f', art = f ? 'die' : 'der';
+  if (m === 'space') return `${art} ${adj} ${f ? 'Astronautin' : 'Astronaut'}`;
+  if (m === 'jedi') return `${art} ${adj} junge Jedi`;
+  return `${art} ${adj} ${f ? 'Ritterin' : 'Ritter'}`;
+}
 
 const THEMES = [
   { skyTop:'#6ec3ff', skyBot:'#d6f1ff', far:'#a6d9a4', castleFar:'#eef0fb', roof:'#ff7b7b', near:'#78c86a',
@@ -277,7 +313,7 @@ addEventListener('resize', resize); resize();
 function load(k, d){ try { const v = localStorage.getItem('moritz-oskar-' + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
 function save(k, v){ try { localStorage.setItem('moritz-oskar-' + k, JSON.stringify(v)); } catch(e){} }
 let muted = load('muted', false), knightId = load('knight', 'oskar'), mode = load('mode', 'knight');
-if (!KNIGHTS[knightId]) knightId = 'oskar';
+if (!KNIGHTS[knightId]) knightId = 'moritz';
 // One profile per boy: level progress and best score per mode and level.
 const newProfile = () => ({ unlocked:{ knight:1, space:1, school:1 }, best:{} });
 let profiles = load('profiles', null);
@@ -303,7 +339,7 @@ function recordWin(m, i, count){
   save('profiles', profiles);
 }
 if (!['space', 'school', 'jedi'].includes(mode)) mode = 'knight';
-if (!KNIGHTS[knightId]) knightId = 'oskar';
+if (!KNIGHTS[knightId]) knightId = 'moritz';
 
 /* ---------- sound ---------- */
 let ac = null;
@@ -698,7 +734,7 @@ function drawStation(gx, gy){
   g.fillStyle = '#2b2f55'; rr(g, -98, -32, 30, 64, 12); g.fill();
   g.strokeStyle = Math.floor(t * 3) % 2 ? k.light : k.color; g.lineWidth = 4; g.stroke();
   g.fillStyle = k.color; circ(g, 0, -96, 22); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 3; g.stroke();
-  g.fillStyle = '#fff'; g.font = `800 26px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(k.letter, 0, -95);
+  fitText(g, k.letter, 0, -95, 38, 26, k.ink || '#fff');
   g.fillStyle = Math.floor(t * 2) % 2 ? '#ff5d6c' : '#ffd93d'; circ(g, 0, -178, 6); g.fill();
   g.restore();
 }
@@ -724,24 +760,15 @@ function drawAstronaut(c, k, o){
   c.fillStyle = '#f4f6fb'; rr(c, -12, -6, 24, 22, 9); c.fill(); c.strokeStyle = '#c7cde0'; c.lineWidth = 2; c.stroke();
   c.fillStyle = k.color; c.fillRect(-12, 9, 24, 3);
   c.fillStyle = k.color; circ(c, 3, 2, 7.5); c.fill();
-  c.fillStyle = '#fff'; c.font = `800 11px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(k.letter, 3, 2.5);
+  fitText(c, k.letter, 3, 2.5, 13, 11, k.ink || '#fff');
   // arm
   c.fillStyle = '#f4f6fb'; rr(c, 5, -3, 14, 7, 3.5); c.fill(); c.strokeStyle = '#c7cde0'; c.lineWidth = 1.5; c.stroke();
   c.fillStyle = k.color; circ(c, 19, 0.5, 4); c.fill();
   // helmet glass, head, blond hair
   c.fillStyle = 'rgba(170,215,255,.4)'; circ(c, 2, -21, 17); c.fill();
-  c.fillStyle = SKIN; circ(c, 3, -20, 11.5); c.fill();
-  c.fillStyle = HAIR; c.strokeStyle = HAIR_D; c.lineWidth = 1.2;
-  c.beginPath(); c.arc(3, -21.5, 11.8, Math.PI * 0.92, Math.PI * 2.04);
-  c.lineTo(14, -21); c.lineTo(11, -24); c.lineTo(9, -20); c.lineTo(6, -24); c.lineTo(3, -21); c.lineTo(0, -25); c.lineTo(-4, -20); c.lineTo(-8, -17);
-  c.closePath(); c.fill(); c.stroke();
-  c.beginPath(); c.moveTo(-3, -31); c.lineTo(0, -37); c.lineTo(3, -32); c.moveTo(4, -32); c.lineTo(8, -37); c.lineTo(9, -31); c.fill();
-  if (k.hair === 1){ c.beginPath(); c.moveTo(1, -32); c.quadraticCurveTo(-1, -40, 6, -38); c.quadraticCurveTo(3, -36, 4, -32); c.closePath(); c.fill(); }
-  c.fillStyle = 'rgba(255,120,120,.35)'; circ(c, 13, -14, 2.6); c.fill(); circ(c, 3, -14, 2.4); c.fill();
-  c.fillStyle = '#2a2440';
-  if (o.sad){ c.strokeStyle = '#2a2440'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(5, -19); c.lineTo(8, -16); c.moveTo(8, -19); c.lineTo(5, -16); c.moveTo(10, -19); c.lineTo(13, -16); c.moveTo(13, -19); c.lineTo(10, -16); c.stroke(); }
-  else { ell(c, 6.5, -17.5, 1.9, 2.6); c.fill(); ell(c, 11.5, -17.5, 1.9, 2.6); c.fill(); c.fillStyle = '#fff'; circ(c, 7, -18.5, 0.7); c.fill(); circ(c, 12, -18.5, 0.7); c.fill(); }
-  c.strokeStyle = '#8a3b3b'; c.lineWidth = 1.5; c.beginPath(); c.arc(9, -13.5, 2.8, 0.2 * Math.PI, 0.85 * Math.PI); c.stroke();
+  c.save(); circ(c, 2, -21, 16.5); c.clip();
+  c.translate(1.5, 19.5); c.scale(0.77, 0.77); drawHeroHead(c, k, o);
+  c.restore();
   c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 3; c.beginPath(); c.arc(2, -21, 13.5, -2.7, -1.7); c.stroke();
   c.strokeStyle = '#dfe5f2'; c.lineWidth = 3; circ(c, 2, -21, 17); c.stroke();
   c.fillStyle = '#dfe5f2'; rr(c, -11, -7, 26, 6, 3); c.fill();
@@ -938,7 +965,7 @@ function drawKid(c, k, o){
   c.fillStyle = '#ffffff'; c.fillRect(-17, -27, 7, 2.5);
   // t-shirt with letter
   c.fillStyle = k.color; rr(c, -11, -38, 22, 24, 8); c.fill();
-  c.fillStyle = '#ffffff'; c.font = `800 13px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(k.letter, 1, -26);
+  fitText(c, k.letter, 1, -26, 18, 13, k.ink || '#ffffff');
   c.strokeStyle = '#c84f2b'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(-8, -37); c.lineTo(-11, -22); c.stroke();
   drawHead(c, k, o);
   // Schultüte
@@ -1198,7 +1225,7 @@ function drawJedi(c, k, o){
   c.fillStyle = TUNIC; c.beginPath(); c.moveTo(-11, -20); c.lineTo(11, -20); c.lineTo(13, -11); c.lineTo(-13, -11); c.closePath(); c.fill();
   c.fillStyle = '#6b4226'; c.fillRect(-12, -22, 24, 5);
   c.fillStyle = k.color; rr(c, -5, -24, 10, 9, 2); c.fill();
-  c.fillStyle = '#fff'; c.font = `800 8px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(k.letter, 0, -19.3);
+  fitText(c, k.letter, 0, -19.3, 9, 8, k.ink || '#fff');
   c.fillStyle = ROBE; rr(c, -12, -38, 6, 18, 3); c.fill();
   drawHead(c, k, o);
   // laser sword
@@ -1346,7 +1373,7 @@ function drawJediShip(gx, yb){ // the goal: a round little starship on landing l
   for (let i = 0; i < 6; i++){ g.fillStyle = Math.floor(t * 4 + i) % 2 ? '#ffd93d' : '#ffffff'; circ(g, -90 + i * 36, -70, 4); g.fill(); }
   g.fillStyle = '#3b3f55'; g.beginPath(); g.moveTo(-86, -44); g.lineTo(-56, -44); g.lineTo(-48, 0); g.lineTo(-92, 0); g.closePath(); g.fill();
   g.fillStyle = '#ffe9a8'; g.globalAlpha = 0.5 + Math.sin(t * 3) * 0.2; g.beginPath(); g.moveTo(-82, -40); g.lineTo(-60, -40); g.lineTo(-54, -4); g.lineTo(-88, -4); g.closePath(); g.fill(); g.globalAlpha = 1;
-  g.fillStyle = k.color; circ(g, 70, -88, 14); g.fill(); g.fillStyle = '#fff'; g.font = `800 18px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(k.letter, 70, -87);
+  g.fillStyle = k.color; circ(g, 70, -88, 14); g.fill(); fitText(g, k.letter, 70, -87, 24, 18, k.ink || '#fff');
   g.restore();
 }
 
@@ -1678,9 +1705,12 @@ function drawShield(c, cx, cy, w, h, k){
   c.fillStyle = k.color; c.fill();
   c.lineWidth = Math.max(2, w * 0.12); c.strokeStyle = '#eef3fb'; c.stroke();
   c.lineWidth = 1.2; c.strokeStyle = '#4a5578'; c.stroke();
-  c.fillStyle = '#ffffff'; c.font = `800 ${Math.round(h * 0.62)}px ${FONT}`;
-  c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillText(k.letter, cx, cy - h * 0.02);
+  fitText(c, k.letter, cx, cy - h * 0.02, w * 0.78, h * 0.62, k.ink || '#ffffff');
+}
+function fitText(c, txt, x, y, maxW, size, color){
+  c.font = `800 ${size}px ${FONT}`;
+  const w = c.measureText(txt).width; if (w > maxW){ size *= maxW / w; c.font = `800 ${size}px ${FONT}`; }
+  c.fillStyle = color; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, x, y);
 }
 function drawLeg(c, hx, hy, ang, back){
   c.save(); c.translate(hx, hy); c.rotate(ang);
@@ -1688,40 +1718,132 @@ function drawLeg(c, hx, hy, ang, back){
   c.fillStyle = back ? shade(BOOT, -0.25) : BOOT; rr(c, -5, 9, 13, 8, 4); c.fill();
   c.restore();
 }
-function drawHead(c, k, o){
-  // head
-  c.fillStyle = SKIN; circ(c, 2, -52, 15); c.fill();
-  c.fillStyle = 'rgba(255,120,120,.35)'; circ(c, 14, -45, 3.4); c.fill(); circ(c, 2, -45, 3); c.fill();
-  // blond hair
-  c.fillStyle = HAIR; c.strokeStyle = HAIR_D; c.lineWidth = 1.6;
+function facePath(c, shape){
   c.beginPath();
-  c.moveTo(-13, -43);
-  c.quadraticCurveTo(-18, -60, -8, -67);
-  c.lineTo(-6, -74); c.lineTo(-1, -68);
-  c.lineTo(3, -76); c.lineTo(7, -68);
-  c.lineTo(13, -72); c.lineTo(14, -63);
-  c.quadraticCurveTo(20, -60, 17, -54);
-  c.lineTo(13, -57); c.lineTo(10, -53); c.lineTo(7, -58); c.lineTo(3, -55); c.lineTo(-1, -59);
-  c.quadraticCurveTo(-6, -52, -7, -45);
-  c.lineTo(-10, -41);
-  c.closePath(); c.fill(); c.stroke();
-  if (k.hair === 1){ // Moritz: a little curl on top
-    c.beginPath(); c.moveTo(-2, -70); c.quadraticCurveTo(-6, -84, 4, -82); c.quadraticCurveTo(0, -78, 3, -73); c.closePath(); c.fill(); c.stroke();
+  if (shape === 'long') c.ellipse(2, -51, 13.2, 17, 0, 0, Math.PI * 2);
+  else if (shape === 'pointy'){ c.moveTo(-13, -54); c.arc(2, -54, 15, Math.PI, 0); c.quadraticCurveTo(17, -44, 4, -35.5); c.quadraticCurveTo(-11, -43, -13, -54); }
+  else c.arc(2, -52, 15, 0, Math.PI * 2);
+}
+
+function hairBack(c, h, face){
+  c.fillStyle = h.c; c.strokeStyle = h.d; c.lineWidth = 1.6;
+  if (h.style === 'long'){
+    c.beginPath(); c.moveTo(-12, -58); c.quadraticCurveTo(-16, -40, -14, -23); c.lineTo(-7, -23); c.quadraticCurveTo(-6, -36, -4, -46); c.closePath(); c.fill(); c.stroke();
+  } else if (h.style === 'longwavy'){
+    c.beginPath(); c.moveTo(-12, -62);
+    c.quadraticCurveTo(-24, -52, -19, -44); c.quadraticCurveTo(-25, -36, -19, -29); c.quadraticCurveTo(-24, -22, -15, -17);
+    c.quadraticCurveTo(-8, -19, -4, -22); c.quadraticCurveTo(-8, -30, -3, -36); c.lineTo(-2, -48); c.closePath(); c.fill(); c.stroke();
   }
-  c.strokeStyle = HAIR_L; c.lineWidth = 2; c.beginPath(); c.moveTo(-9, -60); c.quadraticCurveTo(-4, -66, 2, -66); c.stroke();
-  // ear
-  c.fillStyle = SKIN; circ(c, -5, -49, 3.6); c.fill();
-  // face
+}
+
+function hairFront(c, h, face){
+  const top = face === 'long' ? -68 : -67;
+  c.fillStyle = h.c; c.strokeStyle = h.d; c.lineWidth = 1.6;
+  switch (h.style){
+    case 'spiky':
+      c.beginPath(); c.moveTo(-13, -43); c.quadraticCurveTo(-18, -60, -8, -67);
+      c.lineTo(-6, -74); c.lineTo(-1, -68); c.lineTo(3, -76); c.lineTo(7, -68); c.lineTo(13, -72); c.lineTo(14, -63);
+      c.quadraticCurveTo(20, -60, 17, -54); c.lineTo(13, -57); c.lineTo(10, -53); c.lineTo(7, -58); c.lineTo(3, -55); c.lineTo(-1, -59);
+      c.quadraticCurveTo(-6, -52, -7, -45); c.lineTo(-10, -41); c.closePath(); c.fill(); c.stroke();
+      if (h.curl){ c.beginPath(); c.moveTo(-2, -70); c.quadraticCurveTo(-6, -84, 4, -82); c.quadraticCurveTo(0, -78, 3, -73); c.closePath(); c.fill(); c.stroke(); }
+      break;
+    case 'wavy': // dark-blond waves, a little longer on top and at the back
+      c.beginPath(); c.moveTo(-13, -42);
+      c.quadraticCurveTo(-20, -50, -15, -57); c.quadraticCurveTo(-19, -66, -10, -68);
+      c.quadraticCurveTo(-7, -75, 0, -72); c.quadraticCurveTo(5, -78, 10, -72); c.quadraticCurveTo(17, -73, 17, -65);
+      c.quadraticCurveTo(21, -60, 17, -56);
+      c.quadraticCurveTo(14, -61, 11, -56); c.quadraticCurveTo(8, -61, 5, -57); c.quadraticCurveTo(2, -62, -1, -57);
+      c.quadraticCurveTo(-5, -54, -6, -47); c.quadraticCurveTo(-9, -44, -10, -40); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = h.d; c.lineWidth = 1.3;
+      c.beginPath(); c.moveTo(-12, -60); c.quadraticCurveTo(-8, -64, -4, -62); c.moveTo(2, -67); c.quadraticCurveTo(6, -70, 10, -66); c.stroke();
+      break;
+    case 'short': // short and neat with a small side fringe
+      c.beginPath(); c.moveTo(-12, -46);
+      c.quadraticCurveTo(-16, -62, -6, -68); c.quadraticCurveTo(4, -72, 12, -67); c.quadraticCurveTo(18, -63, 16, -57);
+      c.lineTo(13, -59); c.lineTo(9, -57); c.lineTo(5, -60); c.lineTo(1, -58); c.lineTo(-3, -60);
+      c.quadraticCurveTo(-7, -54, -8, -47); c.closePath(); c.fill(); c.stroke();
+      break;
+    case 'bob': // straight, down to the ears, straight fringe
+      c.beginPath(); c.moveTo(-14, -43);
+      c.quadraticCurveTo(-19, -66, 2, -69); c.quadraticCurveTo(19, -68, 18, -54);
+      c.lineTo(15, -54); c.lineTo(15, -58); c.lineTo(-2, -58); c.lineTo(-4, -50); c.lineTo(-4, -43); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = h.d; c.lineWidth = 1.1;
+      for (const x of [-10, -6, 3, 9]){ c.beginPath(); c.moveTo(x, -64); c.lineTo(x - 1, x < 0 ? -45 : -58); c.stroke(); }
+      break;
+    case 'mohawk': // short hair all round with a small tuft at the back; strands taper to points
+      { // outline pass first, fill pass on top: only the outer silhouette keeps a line
+        const capPath = () => { c.beginPath(); c.arc(2, -52.5, 15.3, Math.PI * 0.96, Math.PI * 2.02);
+          c.quadraticCurveTo(12, -58, 3, -59.5); c.quadraticCurveTo(-8, -58, -12, -50); c.closePath(); };
+        // [base x, base y, tip x, tip y, half width at base]
+        const tufts = [[-6, -60, -11, -74, 3.4], [-9, -58, -18, -69, 3.2], [-3, -61, -4, -76, 3]];
+        const tuftPath = ([bx, by, tx, ty, hw]) => {
+          c.beginPath(); c.moveTo(bx + hw, by + 1);
+          c.quadraticCurveTo(bx + hw * 0.6, (by + ty) / 2 - 1, tx, ty);
+          c.quadraticCurveTo(bx - hw * 1.4, (by + ty) / 2 + 2, bx - hw, by + 2);
+          c.closePath();
+        };
+        c.lineJoin = 'round'; c.strokeStyle = h.d; c.lineWidth = 3.2;
+        for (const tf of tufts){ tuftPath(tf); c.stroke(); }
+        capPath(); c.stroke();
+        c.fillStyle = h.c;
+        capPath(); c.fill();
+        for (const tf of tufts){ tuftPath(tf); c.fill(); }
+        c.strokeStyle = h.l; c.lineWidth = 1.3; c.beginPath(); c.moveTo(-5, -62); c.quadraticCurveTo(-6, -68, -9, -71); c.stroke();
+      }
+      break;
+    case 'buzz': // very short: a thin coloured cap with stubble dots
+      c.globalAlpha = 0.85; c.beginPath(); c.arc(2, -52.5, 15.3, Math.PI * 0.96, Math.PI * 2.02);
+      c.quadraticCurveTo(12, -58, 2, -59.5); c.quadraticCurveTo(-8, -58, -12, -50); c.closePath(); c.fill(); c.globalAlpha = 1;
+      c.fillStyle = h.d; for (let i = 0; i < 14; i++){ const a = Math.PI * (1.05 + i * 0.065), r = 13; c.beginPath(); c.arc(2 + Math.cos(a) * r, -52.5 + Math.sin(a) * r, 0.7, 0, Math.PI * 2); c.fill(); }
+      break;
+    case 'long': // long, straight, parted, falls behind the shoulders (back part drawn earlier)
+      c.beginPath(); c.moveTo(-12.5, -44);
+      c.quadraticCurveTo(-16.5, -65, 3, -67.5); c.quadraticCurveTo(17.5, -66, 16, -53);
+      c.quadraticCurveTo(12, -59, 6, -59.5); c.quadraticCurveTo(-1, -59, -4, -52); c.lineTo(-5.5, -42); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = h.l; c.lineWidth = 1.4; c.beginPath(); c.moveTo(-8, -61); c.quadraticCurveTo(-3, -65.5, 3, -65.5); c.stroke();
+      c.strokeStyle = h.d; c.lineWidth = 0.9; c.beginPath(); c.moveTo(-10, -50); c.lineTo(-11, -30); c.stroke();
+      break;
+    case 'longwavy':
+      c.beginPath(); c.moveTo(-14, -42);
+      c.quadraticCurveTo(-21, -58, -12, -66); c.quadraticCurveTo(-4, -73, 6, -69); c.quadraticCurveTo(16, -70, 18, -60);
+      c.quadraticCurveTo(20, -53, 16, -50);
+      c.quadraticCurveTo(14, -57, 9, -57); c.quadraticCurveTo(5, -62, 0, -57); c.quadraticCurveTo(-5, -55, -5, -48); c.quadraticCurveTo(-8, -44, -6, -38);
+      c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = h.l; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-11, -60); c.quadraticCurveTo(-5, -66, 3, -65); c.stroke();
+      break;
+  }
+  if (h.style !== 'buzz' && h.style !== 'mohawk' && h.style !== 'bob' && h.style !== 'long' && h.style !== 'longwavy' && h.style !== 'wavy'){
+    c.strokeStyle = h.l; c.lineWidth = 2; c.beginPath(); c.moveTo(-9, -60); c.quadraticCurveTo(-4, -66, 2, -66); c.stroke();
+  }
+}
+
+function drawHeroHead(c, k, o){
+  const face = k.face, chinY = face === 'long' ? -36 : face === 'pointy' ? -38 : -39;
+  hairBack(c, k.hair, face);
+  c.fillStyle = SKIN; facePath(c, face); c.fill();
+  c.fillStyle = 'rgba(255,120,120,.35)'; c.beginPath(); c.arc(14, -45 + (face === 'long' ? 1 : 0), 3.4, 0, 7); c.fill(); c.beginPath(); c.arc(2, -45, 3, 0, 7); c.fill();
+  hairFront(c, k.hair, face);
+  c.fillStyle = SKIN; c.beginPath(); c.arc(-5, -49, 3.6, 0, 7); c.fill();
+  const ey = face === 'long' ? -51 : -50;
   c.fillStyle = '#2a2440';
-  if (o.sad){ c.lineWidth = 2; c.strokeStyle = '#2a2440'; c.beginPath(); c.moveTo(4, -52); c.lineTo(8, -48); c.moveTo(8, -52); c.lineTo(4, -48); c.moveTo(11, -52); c.lineTo(15, -48); c.moveTo(15, -52); c.lineTo(11, -48); c.stroke(); }
+  if (o.sad){ c.strokeStyle = '#2a2440'; c.lineWidth = 2; c.beginPath(); c.moveTo(4, ey - 2); c.lineTo(8, ey + 2); c.moveTo(8, ey - 2); c.lineTo(4, ey + 2); c.moveTo(11, ey - 2); c.lineTo(15, ey + 2); c.moveTo(15, ey - 2); c.lineTo(11, ey + 2); c.stroke(); }
   else {
-    ell(c, 6, -50, 2.4, 3.3); c.fill(); ell(c, 12.5, -50, 2.4, 3.3); c.fill();
-    c.fillStyle = '#fff'; circ(c, 6.8, -51.3, 0.9); c.fill(); circ(c, 13.3, -51.3, 0.9); c.fill();
+    c.beginPath(); c.ellipse(6, ey, 2.4, 3.3, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(12.5, ey, 2.4, 3.3, 0, 0, 7); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(6.8, ey - 1.3, 0.9, 0, 7); c.fill(); c.beginPath(); c.arc(13.3, ey - 1.3, 0.9, 0, 7); c.fill();
   }
+  if (k.glasses){
+    c.strokeStyle = '#d63a3a'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(1.5, ey - 1); c.lineTo(-4, ey - 2.5); c.stroke(); // red arm to the ear
+    c.strokeStyle = '#c3cad6'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(6, ey, 4.6, 0, 7); c.stroke(); c.beginPath(); c.arc(13, ey, 4.4, 0, 7); c.stroke();
+    c.beginPath(); c.moveTo(10.6, ey - 0.5); c.lineTo(8.6, ey - 0.5); c.stroke();
+  }
+  const my = face === 'long' ? -43 : face === 'pointy' ? -44 : -45;
   c.strokeStyle = '#8a3b3b'; c.lineWidth = 1.8; c.beginPath();
-  if (o.shield || o.suck) c.arc(10, -42, 2.3, 0, Math.PI * 2); else c.arc(10, -45, 3.6, 0.2 * Math.PI, 0.85 * Math.PI);
+  if (o.shield) c.arc(10, my + 3, 2.3, 0, Math.PI * 2); else c.arc(10, my, 3.6, 0.2 * Math.PI, 0.85 * Math.PI);
   c.stroke();
 }
+
+function drawHead(c, k, o){ drawHeroHead(c, k, o); }
 function drawKnight(c, k, o){
   const s = Math.sin(o.phase), run = !o.air && !o.shield;
   const bob = run ? -Math.abs(Math.cos(o.phase)) * 3 : 0;
@@ -2071,7 +2193,7 @@ function drawCastle(gx, yb, th){
   g.beginPath(); g.moveTo(-32, -76); g.lineTo(32, -76); g.stroke();
   // banner with the knight's letter
   g.fillStyle = k.color; g.beginPath(); g.moveTo(-22, -146); g.lineTo(22, -146); g.lineTo(22, -110); g.lineTo(0, -100); g.lineTo(-22, -110); g.closePath(); g.fill();
-  g.fillStyle = '#fff'; g.font = `800 28px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(k.letter, 0, -124);
+  fitText(g, k.letter, 0, -124, 38, 28, k.ink || '#fff');
   g.restore();
 }
 
@@ -2311,6 +2433,14 @@ function render(){
 }
 
 /* ---------- menu previews ---------- */
+const cardBox = document.querySelector('.cards');
+for (const k of CHARS){
+  const b = document.createElement('button'); b.className = 'card'; b.dataset.knight = k.id;
+  b.style.setProperty('--soft', shade(k.light, 0.55)); b.style.setProperty('--kc', k.dark);
+  b.innerHTML = `<canvas width="400" height="340"></canvas><span class="name"></span><span class="sub" data-sub="${k.id}"></span><span class="prog" data-prog="${k.id}"></span>`;
+  b.querySelector('.name').textContent = k.name;
+  cardBox.appendChild(b);
+}
 const cards = [...document.querySelectorAll('.card')];
 const hoverCard = new Set();
 for (const c of cards){
@@ -2375,13 +2505,13 @@ function syncProgress(){
     const id = el.dataset.prog, n = LV().length;
     let done = 0; for (let i = 0; i < n; i++) if (bestFor(mode, i, id) !== undefined) done++;
     done = Math.max(done, Math.min(n, (profiles[id].unlocked[mode] || 1) - 1));
-    el.textContent = done === 0 ? 'Noch kein Level geschafft' : done === n ? `Alle ${n} Level geschafft!` : `${done} von ${n} Leveln geschafft`;
+    el.textContent = done === 0 ? 'Noch kein Level' : done === n ? `Alle ${n} Level!` : `${done} von ${n} Leveln`;
   }
 }
 function setMode(m){
   mode = m; save('mode', mode);
   for (const b of document.querySelectorAll('.role')) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
-  for (const el of document.querySelectorAll('[data-sub]')) el.textContent = mode === 'school' ? `das ${el.dataset.sub}e Schulkind` : mode === 'jedi' ? `der ${el.dataset.sub}e junge Jedi` : `der ${el.dataset.sub}e ${mode === 'space' ? 'Astronaut' : 'Ritter'}`;
+  for (const el of document.querySelectorAll('[data-sub]')) el.textContent = roleLabel(KNIGHTS[el.dataset.sub], mode);
   $('howto').innerHTML = HOWTO[mode];
   syncProgress();
   lvl = mode === 'space' ? buildSpace(0) : buildLevel(0, mode); cam = 0; projs = [];
@@ -2416,7 +2546,8 @@ function showWin(){
   const k = KNIGHTS[knightId], L = LV(), last = lvlIndex === L.length - 1, sp = !!lvl.space, sc = !!lvl.school, jd = !!lvl.jedi;
   $('msgTitle').textContent = last ? 'Alle Abenteuer geschafft!' : 'Hurra, geschafft!';
   $('msgStars').innerHTML = `${sc ? CANDY_SVG : STAR_SVG} ${got} von ${lvl.totalStars}` + (newRecord ? ' <span class="record">Neuer Rekord!</span>' : ` <span class="recordold">Rekord: ${bestFor(lvl.mode, lvlIndex)}</span>`);
-  $('msgText').textContent = last ? (sp ? `${k.name} ist der mutigste Astronaut im ganzen Weltall.` : sc ? `${k.name} ist das fröhlichste Schulkind in ganz Bützow.` : jd ? `${k.name} ist der mutigste junge Jedi der ganzen Galaxis.` : `${k.name} ist der tapferste Ritter im ganzen Land.`) : `${k.name} hat ${sp ? 'die Raumstation' : sc ? 'die Schule' : jd ? 'sein Raumschiff' : 'die Burg'} erreicht. Als Nächstes: ${L[lvlIndex + 1].name}!`;
+  const f = k.sex === 'f';
+  $('msgText').textContent = last ? (sp ? `${k.name} ist ${f ? 'die mutigste Astronautin' : 'der mutigste Astronaut'} im ganzen Weltall.` : sc ? `${k.name} ist das fröhlichste Schulkind in ganz Bützow.` : jd ? `${k.name} ist ${f ? 'die mutigste junge' : 'der mutigste junge'} Jedi der ganzen Galaxis.` : `${k.name} ist ${f ? 'die tapferste Ritterin' : 'der tapferste Ritter'} im ganzen Land.`) : `${k.name} hat ${sp ? 'die Raumstation' : sc ? 'die Schule' : jd ? (f ? 'ihr Raumschiff' : 'sein Raumschiff') : 'die Burg'} erreicht. Als Nächstes: ${L[lvlIndex + 1].name}!`;
   $('msgA').textContent = last ? 'Nochmal von vorn' : 'Nächstes Level';
   $('msgA').onclick = () => { sfx('click'); startLevel(last ? 0 : lvlIndex + 1); };
   $('msgB').textContent = 'Zum Menü';
