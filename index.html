@@ -1517,7 +1517,7 @@ let camY = 0;
 function surfY(f, x){ return f.yc + f.tilt * (x - PW / 2); }
 function overSurface(f, x, roller){
   if (x < WL - 2 || x > WR + 2) return false;
-  if (roller && f.slit && x > f.slit[0] && x < f.slit[1]) return false;
+  if (roller && f.hole && Math.abs(x - f.hole.x) < f.hole.w / 2 - 6) return false; // the big sweet and the cotton candy let sweets through
   if (f.gap && x > f.gap[0] && x < f.gap[1]) return false;
   if (f.hole && f.hole.open && Math.abs(x - f.hole.x) < f.hole.w / 2) return false;
   return true;
@@ -1533,8 +1533,6 @@ function buildParty(i){
     const f = { k, yc: HH - 60 - k * FLOOR_DY, tilt: k === N ? 0 : low * 16 / (WR - WL), low, solid, gap:null, hole:null };
     if (k > 0 && !solid) f.gap = low > 0 ? [WR - 150, WR - 72] : [WL + 72, WL + 150];
     if (solid){
-      // narrow slit at the low end: wide enough for the sweets, too narrow for a child carrying a gift
-      f.slit = low > 0 ? [WR - 95, WR - 55] : [WL + 55, WL + 95];
       const lowPrev = (k - 1) % 2 === 0 ? 1 : -1;  // hole above the high end of the floor below
       f.hole = { x: lowPrev > 0 ? WL + 175 : WR - 175, w: 86, open:false };
       barriers.push({ floor:k, x:f.hole.x, kind:['lolli', 'cupcake', 'kuss'][barriers.length % 3], state:'stand', t:0, side: lowPrev > 0 ? -1 : 1 });
@@ -1542,12 +1540,10 @@ function buildParty(i){
     floors.push(f);
   }
   const top = floors[N];
-  // top floor: hole on one side, table on the other; in between lies the jar, its opening facing a slit
+  // top floor: hole on one side, table on the other; in between lies the jar, its opening facing the hole
   const left = top.hole.x < PW / 2;
   const tableX = left ? WR - 150 : WL + 150;
-  const slitC = left ? tableX - 100 - 28 : tableX + 100 + 28;
-  top.slit = [slitC - 20, slitC + 20];
-  const jarDir = left ? 1 : -1, jarX = slitC - jarDir * 70;
+  const jarDir = left ? -1 : 1, jarX = top.hole.x - jarDir * (top.hole.w / 2 + 78);
   // balloons to collect: two per floor, some low (walk into them), some high (jump)
   for (let k = 0; k < N; k++){
     const f = floors[k], xs = [WL + 110, PW / 2, WR - 110].filter(x => overSurface(f, x) && !(f.hole && Math.abs(x - f.hole.x) < 80));
@@ -1564,7 +1560,7 @@ function buildParty(i){
     signs.push({ x: hx + (hx < PW / 2 ? 150 : -150), y: surfY(fb, hx), text:'Lang drücken: Geschenk werfen!' });
   }
   return { party:true, mode:'party', i, th, L, N, HH, floors, barriers, rollers:[], stars, heal, signs, tableX, enemies:[], cps:[],
-    width: PW, totalStars: stars.length, spawnT: 1.5, squish:[], giftAnim:null, jarX, jarDir, slitC, goal:{ x: tableX, y: surfY(top, tableX) } };
+    width: PW, totalStars: stars.length, spawnT: 1.5, squish:[], giftAnim:null, jarX, jarDir, goal:{ x: tableX, y: surfY(top, tableX) } };
 }
 function newPartyPlayer(){
   const f = lvl.floors[0], x = WL + 30;
@@ -1590,14 +1586,9 @@ function updatePartyPlayer(dt){
       for (const b of lvl.barriers){
         if (b.state !== 'stand' || gf.hit) continue;
         const under = surfY(lvl.floors[b.floor], b.x) + PTHICK;
-        if (Math.abs(gx - b.x) < 56 && gy - 12 <= under && gy > under - 70){
+        if (Math.abs(gx - b.x) < 64 && gy - 12 <= under && gy > under - 130){
           gf.hit = true; gf.vy = 160; b.state = 'fall'; b.t = 0; sfx('stomp'); sparkle(b.x, under - 20, '#ffffff', 14);
         }
-      }
-      for (const f of lvl.floors){
-        if (!f.solid || gf.vy >= 0) continue;
-        const under = surfY(f, gx) + PTHICK;
-        if (gy - 12 <= under && gy > under - 24 && !(f.hole.open && Math.abs(gx - f.hole.x) < f.hole.w / 2)) gf.vy = 120;
       }
     }
     for (const q of lvl.rollers){ // rolling sweets are knocked away whether the gift goes up or comes down
@@ -1760,16 +1751,10 @@ function drawFloors(th){
     const ys = surfY(f, PW / 2); if (ys < camY - 60 || ys > camY + H + 60) continue;
     const cuts = [];
     if (f.gap) cuts.push(f.gap);
-    if (f.hole && !f.hole.patched) cuts.push([f.hole.x - f.hole.w / 2, f.hole.x + f.hole.w / 2]);
-    if (f.slit) cuts.push(f.slit);
+    if (f.hole) cuts.push([f.hole.x - f.hole.w / 2, f.hole.x + f.hole.w / 2]);
     let a = WL;
     for (const [c0, c1] of cuts.sort((m, n) => m[0] - n[0])){ if (c0 > a) drawFloorPiece(f, a, c0, th); a = c1; }
     if (a < WR) drawFloorPiece(f, a, WR, th);
-    if (f.hole && f.hole.patched){
-      const hx = f.hole.x, hy = surfY(f, hx);
-      g.fillStyle = '#ffd0e4'; rr(g, hx - f.hole.w / 2, hy - 2, f.hole.w, PTHICK + 2, 6); g.fill();
-      for (let i = 0; i < 12; i++){ g.fillStyle = BEAR_COLS[i % 6]; g.save(); g.translate(hx - f.hole.w / 2 + 6 + hash(i + hx) * (f.hole.w - 12), hy + 3 + hash(i * 3 + hx) * 10); g.rotate(i); g.fillRect(-4, -1.2, 8, 2.4); g.restore(); }
-    }
     if (f.k === 0){ g.fillStyle = th.plankDark; g.fillRect(WL, surfY(f, WL) + PTHICK - 2, WR - WL, 80); }
   }
 }
@@ -1808,7 +1793,7 @@ function drawBarrier(b){
   }
   g.restore();
 }
-function drawCandyJar(){ // tipped-over milky glass jar full of the rolling sweets; they tumble out of the opening into the slit
+function drawCandyJar(){ // tipped-over milky glass jar full of the rolling sweets; they tumble out of the opening into the hole
   const top = lvl.floors[lvl.N], x = lvl.jarX, y = surfY(top, x), dir = lvl.jarDir;
   g.save(); g.translate(x, y); g.scale(dir * 0.8, 0.8);
   // contents first, in soft pastel (seen through milky glass)
@@ -1817,13 +1802,24 @@ function drawCandyJar(){ // tipped-over milky glass jar full of the rolling swee
     const r = kind === 'linse' ? 12 : kind === 'donut' ? 14 : 13;
     drawRoller({ x: ix, y: iy, r, kind, rot: n * 0.9, col: shade(BEAR_COLS[n % 6], 0.45), born: 0, still: true });
   });
-  // milky glass body with neck and opening towards the slit
+  // milky glass body with neck and opening towards the hole
   g.fillStyle = 'rgba(235,245,255,.42)'; rr(g, -62, -76, 104, 76, 26); g.fill();
   g.strokeStyle = 'rgba(140,180,215,.95)'; g.lineWidth = 3; rr(g, -62, -76, 104, 76, 26); g.stroke();
   g.fillStyle = 'rgba(235,245,255,.42)'; rr(g, 38, -62, 18, 48, 6); g.fill(); g.stroke();
   g.fillStyle = '#ff8fb8'; rr(g, 52, -66, 8, 56, 4); g.fill();
   g.fillStyle = 'rgba(255,255,255,.7)'; rr(g, -50, -68, 46, 7, 4); g.fill(); rr(g, -56, -50, 7, 26, 4); g.fill();
   g.restore();
+}
+function drawCottonCandy(){ // fills the hole once the child is through: soft for sweets, solid for children
+  for (const f of lvl.floors){
+    if (!f.hole || !f.hole.patched) continue;
+    const x = f.hole.x, y = surfY(f, x) + PTHICK / 2, w = f.hole.w / 2;
+    g.globalAlpha = 0.92;
+    const puffs = [[-w + 10, 2, 13], [-w / 2, -4, 15], [0, 0, 16], [w / 2, -3, 15], [w - 10, 3, 13], [-w / 3, 8, 12], [w / 3, 8, 12]];
+    g.fillStyle = '#ffc6e0'; for (const [dx, dy, r] of puffs){ circ(g, x + dx, y + dy, r); g.fill(); }
+    g.fillStyle = '#ffe6f2'; for (const [dx, dy, r] of puffs){ circ(g, x + dx - 3, y + dy - 4, r * 0.55); g.fill(); }
+    g.globalAlpha = 1;
+  }
 }
 function drawBalloon(x, y, col, s){
   g.strokeStyle = 'rgba(80,80,110,.6)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y + 18 * s); g.quadraticCurveTo(x + 6, y + 30 * s, x, y + 40 * s); g.stroke();
@@ -1849,10 +1845,12 @@ function drawRoller(q){
     for (let i = 0; i < 7; i++){ g.fillStyle = BEAR_COLS[i % 5]; g.save(); g.rotate(i * 0.9); g.fillRect(q.r * 0.55, -1.2, 5, 2.4); g.restore(); }
     g.fillStyle = '#c97a3c'; circ(g, 0, 0, q.r * 0.38); g.fill(); g.fillStyle = '#a85f2a'; circ(g, 0, 0, q.r * 0.28); g.fill();
   }
+  if (!q.still){ // the face rolls along with the sweet
+    const ey = q.kind === 'donut' ? -q.r * 0.66 : -2;
+    g.fillStyle = '#ffffff'; circ(g, -4.5, ey, 3); g.fill(); circ(g, 4.5, ey, 3); g.fill();
+    g.fillStyle = '#2a2440'; circ(g, -4.5, ey, 1.7); g.fill(); circ(g, 4.5, ey, 1.7); g.fill();
+  }
   g.restore();
-  if (q.still) return;
-  // a little face that does not roll
-  g.fillStyle = '#2a2440'; circ(g, q.x - 4, q.y - hop - 2, 1.8); g.fill(); circ(g, q.x + 4, q.y - hop - 2, 1.8); g.fill();
 }
 function drawTable(){
   const tx = lvl.tableX, ty = lvl.goal.y, big = lvl.i === 2;
@@ -2000,6 +1998,7 @@ function renderParty(){
   drawSigns();
   drawCandyJar();
   for (const q of lvl.rollers) drawRoller(q);
+  drawCottonCandy();
   drawTable();
   for (const b of lvl.barriers) drawBarrier(b);
   drawPartyBalloons(); drawHealHearts();
@@ -2021,7 +2020,7 @@ function newPlayer(x, y){ return { x, y, w:28, h:60, vx:0, vy:0, prevY:y, onGrou
 function startLevel(i){
   lvlIndex = i;
   if (mode === 'space'){ lvl = buildSpace(i); p = newAstro(); }
-  else if (mode === 'party'){ lvl = buildParty(i); p = newPartyPlayer(); partyCamera(0, true); for (const k of [2, 3, 4]) spawnRoller(k); }
+  else if (mode === 'party'){ lvl = buildParty(i); p = newPartyPlayer(); partyCamera(0, true); for (const k of [2, 4]) spawnRoller(k); }
   else { lvl = buildLevel(i, mode); p = newPlayer(60, GY); }
   cp = { x:60, y:GY };
   hearts = 3; got = 0; projs = []; parts = []; playT = 0;
