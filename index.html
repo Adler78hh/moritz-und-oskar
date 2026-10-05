@@ -1508,16 +1508,17 @@ const PTHEMES = [
   { look:'garten', top:'#7cc8ff', bot:'#e8f8ff', paper:'#bfe6ff', stripe:'#b0dcf8', plank:'#e8bb7c', plankDark:'#b9874a', icing:'#b8ec9a', accent:'#5fbf6a' },
 ];
 const PLEVELS = [
-  { name:'Partysaal', sub:'Gummibärchen-Wände und rollende Bonbons', floors:6, barriers:[3, 6], spawn:4.0, speed:100, kinds:['bonbon', 'linse'] },
-  { name:'Spielzimmer', sub:'Höher hinauf, mit hüpfenden Donuts', floors:8, barriers:[3, 6, 8], spawn:3.6, speed:106, kinds:['bonbon', 'linse', 'donut'] },
-  { name:'Garten-Party', sub:'Der höchste Turm und die größte Torte', floors:9, barriers:[3, 6, 9], spawn:3.1, speed:116, kinds:['bonbon', 'linse', 'donut'] },
+  { name:'Partysaal', sub:'Gummibärchen-Wände und rollende Bonbons', floors:8, barriers:[4, 8], spawn:4.4, speed:88, kinds:['bonbon', 'linse'] },
+  { name:'Spielzimmer', sub:'Höher hinauf, mit hüpfenden Donuts', floors:10, barriers:[3, 7, 10], spawn:3.6, speed:98, kinds:['bonbon', 'linse', 'donut'] },
+  { name:'Garten-Party', sub:'Der höchste Turm und die größte Torte', floors:12, barriers:[4, 8, 12], spawn:3.0, speed:106, kinds:['bonbon', 'linse', 'donut'] },
 ];
 const BEAR_COLS = ['#ff5d6c', '#ffb52e', '#ffe14d', '#7ad15b', '#ff9fd6', '#f4f4f4', '#8f7bff'];
 let camY = 0;
 
 function surfY(f, x){ return f.yc + f.tilt * (x - PW / 2); }
-function overSurface(f, x){
+function overSurface(f, x, roller){
   if (x < WL - 2 || x > WR + 2) return false;
+  if (roller && f.grate && x > f.grate[0] + 8 && x < f.grate[1] - 8) return false;
   if (f.gap && x > f.gap[0] && x < f.gap[1]) return false;
   if (f.hole && f.hole.open && Math.abs(x - f.hole.x) < f.hole.w / 2) return false;
   return true;
@@ -1533,28 +1534,37 @@ function buildParty(i){
     const f = { k, yc: HH - 60 - k * FLOOR_DY, tilt: k === N ? 0 : low * 16 / (WR - WL), low, solid, gap:null, hole:null };
     if (k > 0 && !solid) f.gap = low > 0 ? [WR - 150, WR - 72] : [WL + 72, WL + 150];
     if (solid){
+      // liquorice grate at the low end: rolling sweets drop through it, children cannot
+      f.grate = low > 0 ? [WR - 110, WR - 40] : [WL + 40, WL + 110];
       const lowPrev = (k - 1) % 2 === 0 ? 1 : -1;  // hole above the high end of the floor below
       f.hole = { x: lowPrev > 0 ? WL + 175 : WR - 175, w: 86, open:false };
       barriers.push({ floor:k, x:f.hole.x, kind:['lolli', 'cupcake', 'kuss'][barriers.length % 3], state:'stand', t:0, side: lowPrev > 0 ? -1 : 1 });
     }
     floors.push(f);
   }
-  const top = floors[N], tableX = top.hole.x < PW / 2 ? WR - 160 : WL + 160;
+  const top = floors[N];
+  // top floor: hole on one side, table on the other; the sweets roll from the jar behind the table and drop through a grate under it
+  const left = top.hole.x < PW / 2;
+  top.grate = left ? [WR - 110, WR - 40] : [WL + 40, WL + 110];
+  const tableX = left ? WR - 160 : WL + 160;
+  const jarX = left ? (top.hole.x + 43 + tableX - 110) / 2 : (top.hole.x - 43 + tableX + 110) / 2;
   // balloons to collect: two per floor, some low (walk into them), some high (jump)
   for (let k = 0; k < N; k++){
     const f = floors[k], xs = [WL + 110, PW / 2, WR - 110].filter(x => overSurface(f, x) && !(f.hole && Math.abs(x - f.hole.x) < 80));
     const a = Math.floor(hash(k * 7 + i) * xs.length), b = (a + 1) % xs.length;
     for (const x of [xs[a], xs[b]]) if (x !== undefined) stars.push({ x, y: surfY(f, x) - (hash(k * 13 + x) < 0.5 ? 58 : 92), got:false, col: BEAR_COLS[(k + stars.length) % 5] });
   }
-  const mid = floors[Math.round(N / 2)] && !floors[Math.round(N / 2)].solid ? floors[Math.round(N / 2)] : floors[Math.round(N / 2) - 1];
+  let hk = Math.round(N * 0.66); while (floors[hk].solid) hk--;
+  const mid = floors[hk];
   const heal = [{ x: PW / 2, y: surfY(mid, PW / 2) - 52, got:false }];
+  for (const b of barriers) b.x = floors[b.floor].hole.x;
   if (i === 0){
     signs.push({ x: WL + 210, y: surfY(floors[0], WL + 210), text:'Kurz tippen: springen!' });
     const fb = floors[L.barriers[0] - 1], hx = floors[L.barriers[0]].hole.x;
     signs.push({ x: hx + (hx < PW / 2 ? 150 : -150), y: surfY(fb, hx), text:'Lang drücken: Geschenk werfen!' });
   }
   return { party:true, mode:'party', i, th, L, N, HH, floors, barriers, rollers:[], stars, heal, signs, tableX, enemies:[], cps:[],
-    width: PW, totalStars: stars.length, spawnT: 2.5, squish:[], giftAnim:null, goal:{ x: tableX, y: surfY(top, tableX) } };
+    width: PW, totalStars: stars.length, spawnT: 1.5, squish:[], giftAnim:null, jarX, goal:{ x: tableX, y: surfY(top, tableX) } };
 }
 function newPartyPlayer(){
   const f = lvl.floors[0], x = WL + 30;
@@ -1582,6 +1592,12 @@ function updatePartyPlayer(dt){
         const under = surfY(lvl.floors[b.floor], b.x) + PTHICK;
         if (Math.abs(gx - b.x) < 56 && gy - 12 <= under && gy > under - 70){
           gf.hit = true; gf.vy = 160; b.state = 'fall'; b.t = 0; sfx('stomp'); sparkle(b.x, under - 20, '#ffffff', 14);
+        }
+      }
+      for (const q of lvl.rollers){
+        const hop = q.kind === 'donut' ? Math.abs(Math.sin(q.born * 5)) * 9 : 0;
+        if (!q.dead && Math.hypot(q.x - gx, q.y - hop - gy) < q.r + 14){
+          q.dead = true; sfx('stomp'); sparkle(q.x, q.y, q.col, 12); puff(q.x, q.y, 5);
         }
       }
       for (const f of lvl.floors){
@@ -1637,20 +1653,23 @@ function nextLockedFloor(){
   for (const b of lvl.barriers) if (b.state === 'stand' && b.floor > p.floor) return b.floor;
   return null;
 }
+function spawnRoller(anywhere){
+  const L = lvl.L, top = lvl.floors[lvl.N];
+  let F = lvl.N, x = lvl.jarX, dir = top.grate[0] < PW / 2 ? -1 : 1;
+  if (anywhere){ // at the start some sweets are already on their way down from the top
+    F = lvl.N - 1 - Math.floor(Math.random() * 3); const f = lvl.floors[F]; x = f.low > 0 ? WL + 40 : WR - 40; dir = f.low;
+  } else if (p && p.floor === F && Math.abs(p.x - x) < 160) return;
+  const f = lvl.floors[F], kind = L.kinds[Math.floor(Math.random() * L.kinds.length)];
+  const r = kind === 'linse' ? 14 : kind === 'donut' ? 18 : 16;
+  lvl.rollers.push({ x, y: surfY(f, x) - r, r, kind, dir, vy:0, floor:F, bounces:0, rot:0, col: BEAR_COLS[Math.floor(Math.random() * 5)], born:0 });
+}
 function updateParty(dt, active){
   const L = lvl.L;
   if (active){
     lvl.spawnT -= dt;
-    if (lvl.spawnT <= 0 && lvl.rollers.length < 4){
+    if (lvl.spawnT <= 0 && lvl.rollers.length < 8){
       lvl.spawnT = L.spawn * (0.8 + Math.random() * 0.4);
-      const locked = nextLockedFloor(), F = Math.max(0, (locked ?? lvl.N) - 1), f = lvl.floors[F];
-      const x = f.low > 0 ? WL + 26 : WR - 26;
-      if (!(p.floor === F && Math.abs(p.x - x) < 180)){
-        const kind = L.kinds[Math.floor(Math.random() * L.kinds.length)];
-        const r = kind === 'linse' ? 14 : kind === 'donut' ? 18 : 16;
-        lvl.rollers.push({ x, y: surfY(f, x) - r, r, kind, dir: f.low, vy:0, floor:F, bounces:0, rot:0, col: BEAR_COLS[Math.floor(Math.random() * 5)], born:0 });
-        sparkle(x, surfY(f, x) - r, '#ffffff', 8);
-      }
+      spawnRoller(false);
     }
   }
   for (const q of lvl.rollers){
@@ -1661,18 +1680,17 @@ function updateParty(dt, active){
       q.x += q.dir * sp * dt; q.rot += q.dir * sp * dt / q.r;
       if (q.x - q.r < WL){ q.x = WL + q.r; q.dir = 1; q.bounces++; squishWall(-1, q.y); }
       if (q.x + q.r > WR){ q.x = WR - q.r; q.dir = -1; q.bounces++; squishWall(1, q.y); }
-      for (const b of lvl.barriers) if (b.state === 'stand' && b.floor === q.floor && Math.abs(q.x - b.x) < 44 + q.r){ q.dir = q.x < b.x ? -1 : 1; q.x = b.x + q.dir * (45 + q.r); q.bounces++; }
-      if (!overSurface(f, q.x)){ q.floor = null; q.vy = 0; }
+      if (!overSurface(f, q.x, true)){ q.floor = null; q.vy = 0; }
       else q.y = surfY(f, q.x) - q.r;
     } else {
       const prevB = q.y + q.r;
       q.vy += 1800 * dt; q.y += q.vy * dt;
       for (const f of lvl.floors){
         const s = surfY(f, q.x);
-        if (prevB <= s + 4 && q.y + q.r >= s && overSurface(f, q.x)){ q.floor = f.k; q.y = s - q.r; q.vy = 0; break; }
+        if (prevB <= s + 4 && q.y + q.r >= s && overSurface(f, q.x, true)){ q.floor = f.k; q.y = s - q.r; q.vy = 0; break; }
       }
     }
-    if (q.bounces >= 4 || (q.floor === 0 && q.bounces >= 1) || q.y > lvl.HH + 100){ q.dead = true; puff(q.x, q.y, 6); continue; }
+    if (q.bounces >= 7 || (q.floor === 0 && q.bounces >= 1) || q.y > lvl.HH + 100){ q.dead = true; puff(q.x, q.y, 6); continue; }
     if (!active || state !== 'play') continue;
     const hop = q.kind === 'donut' ? Math.abs(Math.sin(q.born * 5)) * 9 : 0;
     const pb = { x: p.x + 4, y: p.y - p.h + 8, w: p.w - 8, h: p.h - 8 };
@@ -1746,6 +1764,15 @@ function drawFloors(th){
     let a = WL;
     for (const [c0, c1] of cuts.sort((m, n) => m[0] - n[0])){ if (c0 > a) drawFloorPiece(f, a, c0, th); a = c1; }
     if (a < WR) drawFloorPiece(f, a, WR, th);
+    if (f.grate){
+      const [g0, g1] = f.grate;
+      for (let x = g0 + 4; x < g1; x += 12){
+        const y = surfY(f, x);
+        g.fillStyle = '#3a1a24'; rr(g, x, y, 7, PTHICK, 3); g.fill();
+        g.fillStyle = '#b8324a'; rr(g, x + 1.5, y + 2, 4, PTHICK - 4, 2); g.fill();
+      }
+      g.fillStyle = '#3a1a24'; g.fillRect(g0, surfY(f, g0) - 2, g1 - g0, 4);
+    }
     if (f.hole && f.hole.patched){
       const hx = f.hole.x, hy = surfY(f, hx);
       g.fillStyle = '#ffd0e4'; rr(g, hx - f.hole.w / 2, hy - 2, f.hole.w, PTHICK + 2, 6); g.fill();
@@ -1768,12 +1795,12 @@ function drawBarrier(b){
   g.save(); g.translate(b.x, base);
   if (k > 0){ g.translate(b.side * k * 60, -Math.sin(k * Math.PI) * 30); g.rotate(b.side * k * 1.6); g.globalAlpha = 1 - Math.max(0, (k - 0.6) / 0.4); }
   const tongue = Math.sin(t * 6) * 3;
-  if (b.kind === 'lolli'){
-    g.fillStyle = '#ffffff'; g.fillRect(-5, -60, 10, 60);
-    g.fillStyle = '#fff'; circ(g, 0, -92, 44); g.fill();
-    g.strokeStyle = '#ff5d8f'; g.lineWidth = 9; g.beginPath(); for (let a = 0; a < 15; a += 0.25){ const r = a * 2.8; g.lineTo(Math.cos(a) * r, -92 + Math.sin(a) * r); } g.stroke();
-    g.strokeStyle = '#2a2440'; g.lineWidth = 3; circ(g, 0, -92, 44); g.stroke();
-    sweetFace(0, -96, 1.2, tongue);
+  if (b.kind === 'lolli'){ // upside down: the big round candy plugs the hole, the stick points up
+    g.fillStyle = '#ffffff'; rr(g, -5, -150, 10, 110, 4); g.fill(); g.strokeStyle = '#d7dcea'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#fff'; circ(g, 0, -34, 46); g.fill();
+    g.strokeStyle = '#ff5d8f'; g.lineWidth = 9; g.beginPath(); for (let a = 0; a < 15; a += 0.25){ const r = a * 2.9; g.lineTo(Math.cos(a) * r, -34 + Math.sin(a) * r); } g.stroke();
+    g.strokeStyle = '#2a2440'; g.lineWidth = 3; circ(g, 0, -34, 46); g.stroke();
+    sweetFace(0, -40, 1.2, tongue);
   } else if (b.kind === 'cupcake'){
     g.fillStyle = '#ffb3d1'; g.beginPath(); g.moveTo(-40, -50); g.lineTo(40, -50); g.lineTo(30, 0); g.lineTo(-30, 0); g.closePath(); g.fill();
     g.strokeStyle = '#ff7aa8'; g.lineWidth = 3; for (let x = -32; x <= 32; x += 12){ g.beginPath(); g.moveTo(x, -48); g.lineTo(x * 0.78, -2); g.stroke(); }
@@ -1787,6 +1814,16 @@ function drawBarrier(b){
     g.fillStyle = 'rgba(255,255,255,.25)'; ell(g, -18, -92, 8, 18); g.fill();
     sweetFace(0, -70, 1.2, tongue);
   }
+  g.restore();
+}
+function drawCandyJar(){ // tipped-over sweet jar at the top: the rolling sweets come out of it
+  const top = lvl.floors[lvl.N], x = lvl.jarX, y = surfY(top, x), dir = top.grate[0] < PW / 2 ? -1 : 1;
+  g.save(); g.translate(x, y - 30); g.scale(dir, 1);
+  g.fillStyle = 'rgba(200,235,255,.55)'; rr(g, -54, -28, 84, 56, 22); g.fill();
+  g.strokeStyle = 'rgba(120,170,210,.9)'; g.lineWidth = 3; rr(g, -54, -28, 84, 56, 22); g.stroke();
+  g.fillStyle = '#ff8fb8'; rr(g, 26, -24, 14, 48, 5); g.fill();
+  for (let i = 0; i < 9; i++){ g.fillStyle = BEAR_COLS[i % 6]; circ(g, -40 + (i % 5) * 14, 14 - Math.floor(i / 5) * 13, 6.5); g.fill(); }
+  g.fillStyle = 'rgba(255,255,255,.6)'; rr(g, -44, -22, 40, 6, 3); g.fill();
   g.restore();
 }
 function drawBalloon(x, y, col, s){
@@ -1961,10 +1998,11 @@ function renderParty(){
   g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(WL, camY - 10, WR - WL, H + 20);
   drawFloors(th);
   drawSigns();
+  drawCandyJar();
+  for (const q of lvl.rollers) drawRoller(q);
   drawTable();
   for (const b of lvl.barriers) drawBarrier(b);
   drawPartyBalloons(); drawHealHearts();
-  for (const q of lvl.rollers) drawRoller(q);
   const inGame = state !== 'menu' && state !== 'levels';
   if (p && inGame) drawPlayer();
   drawGummyWalls();
@@ -1983,7 +2021,7 @@ function newPlayer(x, y){ return { x, y, w:28, h:60, vx:0, vy:0, prevY:y, onGrou
 function startLevel(i){
   lvlIndex = i;
   if (mode === 'space'){ lvl = buildSpace(i); p = newAstro(); }
-  else if (mode === 'party'){ lvl = buildParty(i); p = newPartyPlayer(); partyCamera(0, true); }
+  else if (mode === 'party'){ lvl = buildParty(i); p = newPartyPlayer(); partyCamera(0, true); for (let n = 0; n < 3; n++) spawnRoller(true); }
   else { lvl = buildLevel(i, mode); p = newPlayer(60, GY); }
   cp = { x:60, y:GY };
   hearts = 3; got = 0; projs = []; parts = []; playT = 0;
