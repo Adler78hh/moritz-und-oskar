@@ -44,7 +44,7 @@ button{font-family:var(--font);color:var(--ink);cursor:pointer}
 button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 
 /* HUD buttons */
-.hud{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px;z-index:2}
+.hud{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px;z-index:5}
 #hudL{left:calc(12px + env(safe-area-inset-left,0px))}
 #hudR{right:calc(12px + env(safe-area-inset-right,0px))}
 .hudbtn{width:52px;height:52px;border-radius:50%;flex:none;
@@ -74,7 +74,7 @@ button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 #jump.shielding small,#jump.shielding b{color:var(--paper);opacity:1}
 
 /* Screens */
-.screen{position:fixed;inset:0;display:flex;padding:16px;overflow:auto;background:rgba(29,39,71,.28);touch-action:auto}
+.screen{position:fixed;inset:0;display:flex;padding:76px 16px 16px;overflow:auto;z-index:3;background:rgba(29,39,71,.28);touch-action:auto}
 .panel{margin:auto;width:100%;max-width:660px;background:var(--paper);border:5px solid var(--ink);border-radius:30px;
   box-shadow:0 10px 0 var(--ink);padding:18px 22px 22px;text-align:center;display:flex;flex-direction:column;gap:12px}
 .title{margin:0;font-weight:800;line-height:.95;font-size:clamp(28px,5.6vw,46px);text-wrap:balance;letter-spacing:.2px}
@@ -202,7 +202,6 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
   <div class="panel">
     <h2 id="lvTitle">Wohin geht es?</h2>
     <div class="lvgrid" id="lvgrid"></div>
-    <div class="row"><button class="big-btn plain" id="btnBack">Zurück zur Auswahl</button></div>
   </div>
 </section>
 
@@ -3082,7 +3081,7 @@ const SCREENS = ['menu', 'levels', 'msg'];
 function showScreen(id){
   for (const s of SCREENS) $(s).hidden = s !== id;
   const inGame = id === null;
-  $('btnHome').hidden = !inGame; $('hearts').hidden = !inGame; $('count').hidden = !inGame; $('btnSound').hidden = false; $('jump').hidden = !inGame;
+  $('btnHome').hidden = id === 'menu'; $('hearts').hidden = !inGame; $('count').hidden = !inGame; $('btnSound').hidden = false; $('jump').hidden = !inGame;
   hudKey = '';
   document.body.style.setProperty('--k', KNIGHTS[knightId].color);
 }
@@ -3159,8 +3158,8 @@ function showOver(){
   $('msgB').onclick = () => { sfx('click'); openLevels(); };
   showScreen('msg');
 }
-$('btnBack').addEventListener('click', () => { sfx('click'); goMenu(); });
-$('btnHome').addEventListener('click', e => { e.stopPropagation(); sfx('click'); openLevels(); });
+// Home is always top left: from a level or a result back to the level choice, from the level choice back to the start menu
+$('btnHome').addEventListener('click', e => { e.stopPropagation(); sfx('click'); if (state === 'levels') goMenu(); else openLevels(); });
 function syncSound(){ $('btnSound').classList.toggle('off', muted); }
 $('btnSound').addEventListener('click', e => { e.stopPropagation(); muted = !muted; save('muted', muted); syncSound(); if (!muted) sfx('click'); });
 syncSound();
