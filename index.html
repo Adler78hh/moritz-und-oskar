@@ -1508,9 +1508,9 @@ const PTHEMES = [
   { look:'garten', top:'#7cc8ff', bot:'#e8f8ff', paper:'#bfe6ff', stripe:'#b0dcf8', plank:'#e8bb7c', plankDark:'#b9874a', icing:'#b8ec9a', accent:'#5fbf6a' },
 ];
 const PLEVELS = [
-  { name:'Partysaal', sub:'Gummibärchen-Wände und rollende Bonbons', floors:8, barriers:[4, 8], spawn:4.4, speed:88, kinds:['bonbon', 'linse'] },
-  { name:'Spielzimmer', sub:'Höher hinauf, mit hüpfenden Donuts', floors:10, barriers:[3, 7, 10], spawn:3.6, speed:98, kinds:['bonbon', 'linse', 'donut'] },
-  { name:'Garten-Party', sub:'Der höchste Turm und die größte Torte', floors:12, barriers:[4, 8, 12], spawn:3.0, speed:106, kinds:['bonbon', 'linse', 'donut'] },
+  { name:'Partysaal', sub:'Gummibärchen-Wände und rollende Bonbons', floors:8, barriers:[4, 8], spawn:5.0, speed:85, kinds:['bonbon', 'linse'] },
+  { name:'Spielzimmer', sub:'Höher hinauf, mit hüpfenden Donuts', floors:10, barriers:[3, 7, 10], spawn:4.2, speed:94, kinds:['bonbon', 'linse', 'donut'] },
+  { name:'Garten-Party', sub:'Der höchste Turm und die größte Torte', floors:12, barriers:[4, 8, 12], spawn:3.6, speed:102, kinds:['bonbon', 'linse', 'donut'] },
 ];
 const BEAR_COLS = ['#ff5d6c', '#ffb52e', '#ffe14d', '#7ad15b', '#ff9fd6', '#f4f4f4', '#8f7bff'];
 let camY = 0;
@@ -1518,7 +1518,7 @@ let camY = 0;
 function surfY(f, x){ return f.yc + f.tilt * (x - PW / 2); }
 function overSurface(f, x, roller){
   if (x < WL - 2 || x > WR + 2) return false;
-  if (roller && f.grate && x > f.grate[0] + 8 && x < f.grate[1] - 8) return false;
+  if (roller && f.slit && x > f.slit[0] && x < f.slit[1]) return false;
   if (f.gap && x > f.gap[0] && x < f.gap[1]) return false;
   if (f.hole && f.hole.open && Math.abs(x - f.hole.x) < f.hole.w / 2) return false;
   return true;
@@ -1534,8 +1534,8 @@ function buildParty(i){
     const f = { k, yc: HH - 60 - k * FLOOR_DY, tilt: k === N ? 0 : low * 16 / (WR - WL), low, solid, gap:null, hole:null };
     if (k > 0 && !solid) f.gap = low > 0 ? [WR - 150, WR - 72] : [WL + 72, WL + 150];
     if (solid){
-      // liquorice grate at the low end: rolling sweets drop through it, children cannot
-      f.grate = low > 0 ? [WR - 110, WR - 40] : [WL + 40, WL + 110];
+      // narrow slit at the low end: wide enough for the sweets, too narrow for a child carrying a gift
+      f.slit = low > 0 ? [WR - 95, WR - 55] : [WL + 55, WL + 95];
       const lowPrev = (k - 1) % 2 === 0 ? 1 : -1;  // hole above the high end of the floor below
       f.hole = { x: lowPrev > 0 ? WL + 175 : WR - 175, w: 86, open:false };
       barriers.push({ floor:k, x:f.hole.x, kind:['lolli', 'cupcake', 'kuss'][barriers.length % 3], state:'stand', t:0, side: lowPrev > 0 ? -1 : 1 });
@@ -1543,11 +1543,12 @@ function buildParty(i){
     floors.push(f);
   }
   const top = floors[N];
-  // top floor: hole on one side, table on the other; the sweets roll from the jar behind the table and drop through a grate under it
+  // top floor: hole on one side, table on the other; in between lies the jar, its opening facing a slit
   const left = top.hole.x < PW / 2;
-  top.grate = left ? [WR - 110, WR - 40] : [WL + 40, WL + 110];
-  const tableX = left ? WR - 160 : WL + 160;
-  const jarX = left ? (top.hole.x + 43 + tableX - 110) / 2 : (top.hole.x - 43 + tableX + 110) / 2;
+  const tableX = left ? WR - 150 : WL + 150;
+  const slitC = left ? tableX - 100 - 28 : tableX + 100 + 28;
+  top.slit = [slitC - 20, slitC + 20];
+  const jarDir = left ? 1 : -1, jarX = slitC - jarDir * 70;
   // balloons to collect: two per floor, some low (walk into them), some high (jump)
   for (let k = 0; k < N; k++){
     const f = floors[k], xs = [WL + 110, PW / 2, WR - 110].filter(x => overSurface(f, x) && !(f.hole && Math.abs(x - f.hole.x) < 80));
@@ -1564,7 +1565,7 @@ function buildParty(i){
     signs.push({ x: hx + (hx < PW / 2 ? 150 : -150), y: surfY(fb, hx), text:'Lang drücken: Geschenk werfen!' });
   }
   return { party:true, mode:'party', i, th, L, N, HH, floors, barriers, rollers:[], stars, heal, signs, tableX, enemies:[], cps:[],
-    width: PW, totalStars: stars.length, spawnT: 1.5, squish:[], giftAnim:null, jarX, goal:{ x: tableX, y: surfY(top, tableX) } };
+    width: PW, totalStars: stars.length, spawnT: 1.5, squish:[], giftAnim:null, jarX, jarDir, slitC, goal:{ x: tableX, y: surfY(top, tableX) } };
 }
 function newPartyPlayer(){
   const f = lvl.floors[0], x = WL + 30;
@@ -1594,16 +1595,16 @@ function updatePartyPlayer(dt){
           gf.hit = true; gf.vy = 160; b.state = 'fall'; b.t = 0; sfx('stomp'); sparkle(b.x, under - 20, '#ffffff', 14);
         }
       }
-      for (const q of lvl.rollers){
-        const hop = q.kind === 'donut' ? Math.abs(Math.sin(q.born * 5)) * 9 : 0;
-        if (!q.dead && Math.hypot(q.x - gx, q.y - hop - gy) < q.r + 14){
-          q.dead = true; sfx('stomp'); sparkle(q.x, q.y, q.col, 12); puff(q.x, q.y, 5);
-        }
-      }
       for (const f of lvl.floors){
         if (!f.solid || gf.vy >= 0) continue;
         const under = surfY(f, gx) + PTHICK;
         if (gy - 12 <= under && gy > under - 24 && !(f.hole.open && Math.abs(gx - f.hole.x) < f.hole.w / 2)) gf.vy = 120;
+      }
+    }
+    for (const q of lvl.rollers){ // rolling sweets are knocked away whether the gift goes up or comes down
+      const hop = q.kind === 'donut' ? Math.abs(Math.sin(q.born * 5)) * 9 : 0;
+      if (!q.dead && gf.oy < -8 && Math.hypot(q.x - gx, q.y - hop - gy) < q.r + 14){
+        q.dead = true; sfx('stomp'); sparkle(q.x, q.y, q.col, 12); puff(q.x, q.y, 5);
       }
     }
     if (gf.oy >= 0 && gf.vy > 0){ p.gift = null; sfx('catch'); }
@@ -1655,10 +1656,10 @@ function nextLockedFloor(){
 }
 function spawnRoller(anywhere){
   const L = lvl.L, top = lvl.floors[lvl.N];
-  let F = lvl.N, x = lvl.jarX, dir = top.grate[0] < PW / 2 ? -1 : 1;
-  if (anywhere){ // at the start some sweets are already on their way down from the top
-    F = lvl.N - 1 - Math.floor(Math.random() * 3); const f = lvl.floors[F]; x = f.low > 0 ? WL + 40 : WR - 40; dir = f.low;
-  } else if (p && p.floor === F && Math.abs(p.x - x) < 160) return;
+  let F = lvl.N, dir = lvl.jarDir, x = lvl.jarX + dir * 38;
+  if (anywhere !== false){ // at the start a few sweets are already rolling, on the floors just above the child
+    F = Math.min(lvl.N - 1, anywhere); const f = lvl.floors[F]; x = f.low > 0 ? WL + 60 + Math.random() * 120 : WR - 60 - Math.random() * 120; dir = f.low;
+  } else if (p && p.floor === F && Math.abs(p.x + 14 - x) < 90) return;
   const f = lvl.floors[F], kind = L.kinds[Math.floor(Math.random() * L.kinds.length)];
   const r = kind === 'linse' ? 14 : kind === 'donut' ? 18 : 16;
   lvl.rollers.push({ x, y: surfY(f, x) - r, r, kind, dir, vy:0, floor:F, bounces:0, rot:0, col: BEAR_COLS[Math.floor(Math.random() * 5)], born:0 });
@@ -1667,7 +1668,7 @@ function updateParty(dt, active){
   const L = lvl.L;
   if (active){
     lvl.spawnT -= dt;
-    if (lvl.spawnT <= 0 && lvl.rollers.length < 8){
+    if (lvl.spawnT <= 0 && lvl.rollers.length < 6){
       lvl.spawnT = L.spawn * (0.8 + Math.random() * 0.4);
       spawnRoller(false);
     }
@@ -1761,18 +1762,10 @@ function drawFloors(th){
     const cuts = [];
     if (f.gap) cuts.push(f.gap);
     if (f.hole && !f.hole.patched) cuts.push([f.hole.x - f.hole.w / 2, f.hole.x + f.hole.w / 2]);
+    if (f.slit) cuts.push(f.slit);
     let a = WL;
     for (const [c0, c1] of cuts.sort((m, n) => m[0] - n[0])){ if (c0 > a) drawFloorPiece(f, a, c0, th); a = c1; }
     if (a < WR) drawFloorPiece(f, a, WR, th);
-    if (f.grate){
-      const [g0, g1] = f.grate;
-      for (let x = g0 + 4; x < g1; x += 12){
-        const y = surfY(f, x);
-        g.fillStyle = '#3a1a24'; rr(g, x, y, 7, PTHICK, 3); g.fill();
-        g.fillStyle = '#b8324a'; rr(g, x + 1.5, y + 2, 4, PTHICK - 4, 2); g.fill();
-      }
-      g.fillStyle = '#3a1a24'; g.fillRect(g0, surfY(f, g0) - 2, g1 - g0, 4);
-    }
     if (f.hole && f.hole.patched){
       const hx = f.hole.x, hy = surfY(f, hx);
       g.fillStyle = '#ffd0e4'; rr(g, hx - f.hole.w / 2, hy - 2, f.hole.w, PTHICK + 2, 6); g.fill();
@@ -1816,14 +1809,21 @@ function drawBarrier(b){
   }
   g.restore();
 }
-function drawCandyJar(){ // tipped-over sweet jar at the top: the rolling sweets come out of it
-  const top = lvl.floors[lvl.N], x = lvl.jarX, y = surfY(top, x), dir = top.grate[0] < PW / 2 ? -1 : 1;
-  g.save(); g.translate(x, y - 30); g.scale(dir, 1);
-  g.fillStyle = 'rgba(200,235,255,.55)'; rr(g, -54, -28, 84, 56, 22); g.fill();
-  g.strokeStyle = 'rgba(120,170,210,.9)'; g.lineWidth = 3; rr(g, -54, -28, 84, 56, 22); g.stroke();
-  g.fillStyle = '#ff8fb8'; rr(g, 26, -24, 14, 48, 5); g.fill();
-  for (let i = 0; i < 9; i++){ g.fillStyle = BEAR_COLS[i % 6]; circ(g, -40 + (i % 5) * 14, 14 - Math.floor(i / 5) * 13, 6.5); g.fill(); }
-  g.fillStyle = 'rgba(255,255,255,.6)'; rr(g, -44, -22, 40, 6, 3); g.fill();
+function drawCandyJar(){ // tipped-over milky glass jar full of the rolling sweets; they tumble out of the opening into the slit
+  const top = lvl.floors[lvl.N], x = lvl.jarX, y = surfY(top, x), dir = lvl.jarDir;
+  g.save(); g.translate(x, y); g.scale(dir * 0.8, 0.8);
+  // contents first, in soft pastel (seen through milky glass)
+  const inside = [['bonbon', -40, -14], ['linse', -18, -12], ['donut', 6, -16], ['bonbon', 26, -14], ['linse', -30, -38], ['donut', -6, -40], ['bonbon', 16, -38], ['linse', -12, -60], ['bonbon', 8, -60]];
+  inside.forEach(([kind, ix, iy], n) => {
+    const r = kind === 'linse' ? 12 : kind === 'donut' ? 14 : 13;
+    drawRoller({ x: ix, y: iy, r, kind, rot: n * 0.9, col: shade(BEAR_COLS[n % 6], 0.45), born: 0, still: true });
+  });
+  // milky glass body with neck and opening towards the slit
+  g.fillStyle = 'rgba(235,245,255,.42)'; rr(g, -62, -76, 104, 76, 26); g.fill();
+  g.strokeStyle = 'rgba(140,180,215,.95)'; g.lineWidth = 3; rr(g, -62, -76, 104, 76, 26); g.stroke();
+  g.fillStyle = 'rgba(235,245,255,.42)'; rr(g, 38, -62, 18, 48, 6); g.fill(); g.stroke();
+  g.fillStyle = '#ff8fb8'; rr(g, 52, -66, 8, 56, 4); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.7)'; rr(g, -50, -68, 46, 7, 4); g.fill(); rr(g, -56, -50, 7, 26, 4); g.fill();
   g.restore();
 }
 function drawBalloon(x, y, col, s){
@@ -1851,6 +1851,7 @@ function drawRoller(q){
     g.fillStyle = '#c97a3c'; circ(g, 0, 0, q.r * 0.38); g.fill(); g.fillStyle = '#a85f2a'; circ(g, 0, 0, q.r * 0.28); g.fill();
   }
   g.restore();
+  if (q.still) return;
   // a little face that does not roll
   g.fillStyle = '#2a2440'; circ(g, q.x - 4, q.y - hop - 2, 1.8); g.fill(); circ(g, q.x + 4, q.y - hop - 2, 1.8); g.fill();
 }
@@ -1877,8 +1878,8 @@ function drawTable(){
     fitText(g, ch, fx, fy + 10, 18, 16, '#24305e');
   });
   // table with cloth
-  g.fillStyle = '#ffffff'; rr(g, tx - 110, ty - 52, 220, 52, 6); g.fill();
-  g.fillStyle = lvl.th.accent; for (let x = tx - 104; x < tx + 104; x += 20){ g.beginPath(); g.arc(x + 10, ty - 52, 10, 0, Math.PI); g.fill(); }
+  g.fillStyle = '#ffffff'; rr(g, tx - 100, ty - 52, 200, 52, 6); g.fill();
+  g.fillStyle = lvl.th.accent; for (let x = tx - 96; x < tx + 92; x += 20){ g.beginPath(); g.arc(x + 10, ty - 52, 10, 0, Math.PI); g.fill(); }
   // cake
   const cw = big ? 92 : 70, ch2 = big ? 64 : 44;
   g.fillStyle = '#ffe2ef'; rr(g, tx - cw / 2, ty - 52 - ch2, cw, ch2, 8); g.fill();
@@ -1890,8 +1891,8 @@ function drawTable(){
     g.fillStyle = '#ffb347'; ell(g, cx, cy - 21 + Math.sin(t * 12 + i) * 1, 3, 5); g.fill(); g.fillStyle = '#fff6b0'; ell(g, cx, cy - 20, 1.5, 2.5); g.fill();
   }
   // presents on the table
-  drawGiftBox(g, tx - 88, ty - 70, 26, 20, KNIGHTS.kilian);
-  drawGiftBox(g, tx + 86, ty - 68, 24, 18, KNIGHTS.lenia);
+  drawGiftBox(g, tx - 80, ty - 70, 26, 20, KNIGHTS.kilian);
+  drawGiftBox(g, tx + 78, ty - 68, 24, 18, KNIGHTS.lenia);
   if (lvl.giftAnim){
     const a = lvl.giftAnim, k = Math.min(1, a.t / 0.7), x = a.x0 + (tx + 52 - a.x0) * k, y = a.y0 + (ty - 66 - a.y0) * k - Math.sin(k * Math.PI) * 60;
     drawGiftBox(g, x, y, 24, 20, KNIGHTS[knightId]);
@@ -2021,7 +2022,7 @@ function newPlayer(x, y){ return { x, y, w:28, h:60, vx:0, vy:0, prevY:y, onGrou
 function startLevel(i){
   lvlIndex = i;
   if (mode === 'space'){ lvl = buildSpace(i); p = newAstro(); }
-  else if (mode === 'party'){ lvl = buildParty(i); p = newPartyPlayer(); partyCamera(0, true); for (let n = 0; n < 3; n++) spawnRoller(true); }
+  else if (mode === 'party'){ lvl = buildParty(i); p = newPartyPlayer(); partyCamera(0, true); for (const k of [2, 3, 4]) spawnRoller(k); }
   else { lvl = buildLevel(i, mode); p = newPlayer(60, GY); }
   cp = { x:60, y:GY };
   hearts = 3; got = 0; projs = []; parts = []; playT = 0;
