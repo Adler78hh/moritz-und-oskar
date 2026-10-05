@@ -1,5 +1,5 @@
 // Offline support: keep the game files in a cache so the app also starts without internet.
-const CACHE = 'moritz-oskar-v5';
+const CACHE = 'moritz-oskar-v6';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

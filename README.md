@@ -1,11 +1,11 @@
 # Mo und Os Abenteuer
 
 Ein-Knopf-Spiel für Kinder. Neun Figuren (Mo, Os, Ki, Finn, The, Os W., Fin, Le, Fre)
-spielen als Ritter, Astronaut, Schulkind in Bützow oder junger Jedi – je drei Level,
+spielen als Ritter, Geburtstagskind, Astronaut, Schulkind in Bützow oder junger Jedi – je drei Level,
 eigene Profile und Rekorde pro Figur.
 
 - **Kurz tippen:** springen / hüpfen (Astronaut: nach oben schweben)
-- **Lang drücken:** Schild (Ritter), Schutzschild (Astronaut), Schultüte saugt (Schulkind), Laserschwert-Schild (Jedi)
+- **Lang drücken:** Schild (Ritter), Schutzschild (Astronaut), Schultüte saugt (Schulkind), Laserschwert-Schild (Jedi), Geschenk hochwerfen (Geburtstagskind)
 
 ## Als App installieren
 

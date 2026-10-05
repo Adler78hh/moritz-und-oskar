@@ -184,6 +184,7 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
     <p class="lead">Was möchtest du sein?</p>
     <div class="roles" role="group" aria-label="Ritter oder Astronaut">
       <button class="role" data-mode="knight" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3 4.5 5.5v6c0 4.6 3.2 8 7.5 9.5 4.3-1.5 7.5-4.9 7.5-9.5v-6z" fill="#ff8f85"/></svg>Ritter</button>
+      <button class="role" data-mode="party" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 5.5 20h13z" fill="#ff8fb8"/><circle cx="12" cy="3" r="2" fill="#ffd447"/><circle cx="10" cy="13" r="1.2" fill="#fff" stroke="none"/><circle cx="13.5" cy="9" r="1.1" fill="#fff" stroke="none"/><circle cx="14" cy="16" r="1.2" fill="#fff" stroke="none"/></svg>Geburtstagskind</button>
       <button class="role" data-mode="space" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2.5c3.5 2.5 5 6 4.6 11.5H7.4C7 8.5 8.5 5 12 2.5z" fill="#cfe3ff"/><circle cx="12" cy="9" r="1.9" fill="#7fd3ff"/><path d="M7.4 14 4.5 17l3.3.6M16.6 14l2.9 3-3.3.6M10 17.5l2 3.5 2-3.5"/></svg>Astronaut</button>
       <button class="role" data-mode="school" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 22 5 7.5h14z" fill="#ffd447"/><path d="M5 7.5c1-3 3-4.5 7-4.5s6 1.5 7 4.5" fill="#ffffff"/><path d="M8.5 13.5h7M10 17h4"/></svg>Schulkind</button>
       <button class="role" data-mode="jedi" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path d="M6 19 18 5" stroke="#9cc0ff" stroke-width="5"/><path d="M6 19 18 5" stroke="#ffffff" stroke-width="2"/><path d="M4 21l3.5-3.5" stroke="currentColor" stroke-width="3.4"/></svg>Junger Jedi</button>
@@ -250,6 +251,7 @@ const INDECL = ['rosa', 'lila'];
 function roleLabel(k, m){
   const adj = INDECL.includes(k.word) ? k.word : k.word + 'e';
   if (m === 'school') return `das ${adj} Schulkind`;
+  if (m === 'party') return `das ${adj} Geburtstagskind`;
   const f = k.sex === 'f', art = f ? 'die' : 'der';
   if (m === 'space') return `${art} ${adj} ${f ? 'Astronautin' : 'Astronaut'}`;
   if (m === 'jedi') return `${art} ${adj} junge Jedi`;
@@ -343,7 +345,7 @@ const unlockedFor = m => prof().unlocked[m] || 1;
 const bestFor = (m, i, id) => (profiles[id || knightId].best || {})[m + '-' + i];
 let newRecord = false;
 function recordWin(m, i, count){
-  const pr = prof(), L = m === 'space' ? SLEVELS : m === 'school' ? KLEVELS : m === 'jedi' ? JLEVELS : LEVELS;
+  const pr = prof(), L = m === 'space' ? SLEVELS : m === 'school' ? KLEVELS : m === 'jedi' ? JLEVELS : m === 'party' ? PLEVELS : LEVELS;
   pr.unlocked[m] = Math.max(unlockedFor(m), Math.min(L.length, i + 2));
   if (!pr.best) pr.best = {};
   const prev = pr.best[m + '-' + i];
@@ -351,7 +353,7 @@ function recordWin(m, i, count){
   if (newRecord) pr.best[m + '-' + i] = count;
   save('profiles', profiles);
 }
-if (!['space', 'school', 'jedi'].includes(mode)) mode = 'knight';
+if (!['space', 'school', 'jedi', 'party'].includes(mode)) mode = 'knight';
 if (!KNIGHTS[knightId]) knightId = 'moritz';
 
 /* ---------- sound ---------- */
@@ -381,6 +383,9 @@ const SFX = {
   over:  () => [392, 330, 262].forEach((f, i) => tone(f, 0, 0.3, 'triangle', 0.1, i * 0.22)),
   click: () => tone(660, 990, 0.07, 'sine', 0.07),
   heal:  () => [660, 880, 1175].forEach((f, i) => tone(f, 0, 0.14, 'sine', 0.08, i * 0.08)),
+  throw: () => tone(380, 900, 0.18, 'triangle', 0.08),
+  catch: () => tone(700, 520, 0.08, 'sine', 0.06),
+  boing: () => tone(200, 420, 0.14, 'sine', 0.07),
   bubble:() => { tone(500, 900, 0.18, 'sine', 0.08); tone(1200, 1600, 0.12, 'sine', 0.04, 0.06); },
 };
 function sfx(n){ try { SFX[n](); } catch(e){} }
@@ -444,7 +449,7 @@ function buildLevel(i, m){
   return { i, th, grid, cols: col, width: col * T, stars, sweets, enemies, signs, cps, goal, heal, totalStars: stars.length + sweets.length, mode: school ? 'school' : jedi ? 'jedi' : 'knight', school, jedi };
 }
 let lvl = buildLevel(0);
-const LV = () => mode === 'space' ? SLEVELS : mode === 'school' ? KLEVELS : mode === 'jedi' ? JLEVELS : LEVELS;
+const LV = () => mode === 'space' ? SLEVELS : mode === 'school' ? KLEVELS : mode === 'jedi' ? JLEVELS : mode === 'party' ? PLEVELS : LEVELS;
 function tileAt(c, r){
   if (r < 0) return ' ';
   if (c < 0 || c >= lvl.cols) return r >= 9 ? '#' : ' ';
@@ -1490,6 +1495,483 @@ function drawBolt(q){
   saberGlow(g, x - ux * 16, q.y - uy * 16, x + ux * 6, q.y + uy * 6, col, 3);
 }
 
+/* =====================================================================
+   BIRTHDAY MODE: a Donkey-Kong-like tower, one screen wide, climbing up.
+   Tap = jump (through the waffle floors). Hold = stop and throw the gift up:
+   it knocks over the giant sweet that plugs the hole in a chocolate ceiling.
+   Gummy-bear walls bounce the child and the rolling sweets back.
+   ===================================================================== */
+const PW = 720, WL = 40, WR = PW - 40, FLOOR_DY = 130, PSPEED = 165, PTHICK = 18;
+const PTHEMES = [
+  { look:'saal', top:'#ffd0e2', bot:'#fff4f8', paper:'#ffe3ee', stripe:'#ffd3e4', plank:'#f3c98b', plankDark:'#c9944f', icing:'#ff9fc4', accent:'#ff8fb8' },
+  { look:'zimmer', top:'#cfe8ff', bot:'#f2f9ff', paper:'#e2f1ff', stripe:'#cfe6fb', plank:'#f0c27f', plankDark:'#c08a45', icing:'#9fd8ff', accent:'#6fb6f0' },
+  { look:'garten', top:'#7cc8ff', bot:'#e8f8ff', paper:'#bfe6ff', stripe:'#b0dcf8', plank:'#e8bb7c', plankDark:'#b9874a', icing:'#b8ec9a', accent:'#5fbf6a' },
+];
+const PLEVELS = [
+  { name:'Partysaal', sub:'Gummibärchen-Wände und rollende Bonbons', floors:6, barriers:[3, 6], spawn:4.0, speed:100, kinds:['bonbon', 'linse'] },
+  { name:'Spielzimmer', sub:'Höher hinauf, mit hüpfenden Donuts', floors:8, barriers:[3, 6, 8], spawn:3.6, speed:106, kinds:['bonbon', 'linse', 'donut'] },
+  { name:'Garten-Party', sub:'Der höchste Turm und die größte Torte', floors:9, barriers:[3, 6, 9], spawn:3.1, speed:116, kinds:['bonbon', 'linse', 'donut'] },
+];
+const BEAR_COLS = ['#ff5d6c', '#ffb52e', '#ffe14d', '#7ad15b', '#ff9fd6', '#f4f4f4', '#8f7bff'];
+let camY = 0;
+
+function surfY(f, x){ return f.yc + f.tilt * (x - PW / 2); }
+function overSurface(f, x){
+  if (x < WL - 2 || x > WR + 2) return false;
+  if (f.gap && x > f.gap[0] && x < f.gap[1]) return false;
+  if (f.hole && f.hole.open && Math.abs(x - f.hole.x) < f.hole.w / 2) return false;
+  return true;
+}
+
+function buildParty(i){
+  const L = PLEVELS[i], th = PTHEMES[i], N = L.floors;
+  const HH = 60 + N * FLOOR_DY + 270;
+  const floors = [], barriers = [], stars = [], signs = [];
+  for (let k = 0; k <= N; k++){
+    const low = k % 2 === 0 ? 1 : -1;            // +1: right end is lower, -1: left end is lower
+    const solid = L.barriers.includes(k);
+    const f = { k, yc: HH - 60 - k * FLOOR_DY, tilt: k === N ? 0 : low * 16 / (WR - WL), low, solid, gap:null, hole:null };
+    if (k > 0 && !solid) f.gap = low > 0 ? [WR - 150, WR - 72] : [WL + 72, WL + 150];
+    if (solid){
+      const lowPrev = (k - 1) % 2 === 0 ? 1 : -1;  // hole above the high end of the floor below
+      f.hole = { x: lowPrev > 0 ? WL + 175 : WR - 175, w: 86, open:false };
+      barriers.push({ floor:k, x:f.hole.x, kind:['lolli', 'cupcake', 'kuss'][barriers.length % 3], state:'stand', t:0, side: lowPrev > 0 ? -1 : 1 });
+    }
+    floors.push(f);
+  }
+  const top = floors[N], tableX = top.hole.x < PW / 2 ? WR - 160 : WL + 160;
+  // balloons to collect: two per floor, some low (walk into them), some high (jump)
+  for (let k = 0; k < N; k++){
+    const f = floors[k], xs = [WL + 110, PW / 2, WR - 110].filter(x => overSurface(f, x) && !(f.hole && Math.abs(x - f.hole.x) < 80));
+    const a = Math.floor(hash(k * 7 + i) * xs.length), b = (a + 1) % xs.length;
+    for (const x of [xs[a], xs[b]]) if (x !== undefined) stars.push({ x, y: surfY(f, x) - (hash(k * 13 + x) < 0.5 ? 58 : 92), got:false, col: BEAR_COLS[(k + stars.length) % 5] });
+  }
+  const mid = floors[Math.round(N / 2)] && !floors[Math.round(N / 2)].solid ? floors[Math.round(N / 2)] : floors[Math.round(N / 2) - 1];
+  const heal = [{ x: PW / 2, y: surfY(mid, PW / 2) - 52, got:false }];
+  if (i === 0){
+    signs.push({ x: WL + 210, y: surfY(floors[0], WL + 210), text:'Kurz tippen: springen!' });
+    const fb = floors[L.barriers[0] - 1], hx = floors[L.barriers[0]].hole.x;
+    signs.push({ x: hx + (hx < PW / 2 ? 150 : -150), y: surfY(fb, hx), text:'Lang drücken: Geschenk werfen!' });
+  }
+  return { party:true, mode:'party', i, th, L, N, HH, floors, barriers, rollers:[], stars, heal, signs, tableX, enemies:[], cps:[],
+    width: PW, totalStars: stars.length, spawnT: 2.5, squish:[], giftAnim:null, goal:{ x: tableX, y: surfY(top, tableX) } };
+}
+function newPartyPlayer(){
+  const f = lvl.floors[0], x = WL + 30;
+  return { x, y: surfY(f, x + 14), w:28, h:60, vx:0, vy:0, prevY:0, dir:1, onGround:true, coyote:0, jumpBuf:0, inv:0, phase:0,
+    hidden:false, rot:0, freeze:0, shield:false, stand:false, gift:null, floor:0 };
+}
+
+function squishWall(side, y){ lvl.squish.push({ side, y, t:0 }); }
+function updatePartyPlayer(dt){
+  const heldT = input.down ? now() - input.t0 : 0;
+  const holding = input.down && heldT >= HOLD && p.onGround;
+  if (holding && !p.gift){ p.gift = { oy:0, vy:-700, hit:false }; sfx('throw'); }
+  p.stand = holding || (p.gift && p.onGround && p.gift.oy < -4);
+  if (p.jumpBuf > 0 && (p.onGround || p.coyote > 0)){
+    p.vy = -JV; p.onGround = false; p.coyote = 0; p.jumpBuf = 0; sfx('jump'); dust(p.x + p.w / 2, p.y);
+  }
+  p.jumpBuf -= dt; p.coyote -= dt; if (p.inv > 0) p.inv -= dt;
+  // the thrown gift
+  if (p.gift){
+    const gf = p.gift; gf.oy += gf.vy * dt; gf.vy += 1500 * dt;
+    const gx = p.x + p.w / 2 + 4, gy = p.y - 40 + gf.oy;
+    if (gf.vy < 0){
+      for (const b of lvl.barriers){
+        if (b.state !== 'stand' || gf.hit) continue;
+        const under = surfY(lvl.floors[b.floor], b.x) + PTHICK;
+        if (Math.abs(gx - b.x) < 56 && gy - 12 <= under && gy > under - 70){
+          gf.hit = true; gf.vy = 160; b.state = 'fall'; b.t = 0; sfx('stomp'); sparkle(b.x, under - 20, '#ffffff', 14);
+        }
+      }
+      for (const f of lvl.floors){
+        if (!f.solid || gf.vy >= 0) continue;
+        const under = surfY(f, gx) + PTHICK;
+        if (gy - 12 <= under && gy > under - 24 && !(f.hole.open && Math.abs(gx - f.hole.x) < f.hole.w / 2)) gf.vy = 120;
+      }
+    }
+    if (gf.oy >= 0 && gf.vy > 0){ p.gift = null; sfx('catch'); }
+  }
+  p.vx = (p.stand || p.freeze > 0) ? 0 : p.dir * PSPEED;
+  if (p.freeze > 0) p.freeze -= dt;
+  const was = p.onGround;
+  p.prevY = p.y;
+  p.x += p.vx * dt;
+  if (p.x < WL){ p.x = WL; if (p.dir < 0){ p.dir = 1; squishWall(-1, p.y - 30); sfx('boing'); } }
+  if (p.x + p.w > WR){ p.x = WR - p.w; if (p.dir > 0){ p.dir = -1; squishWall(1, p.y - 30); sfx('boing'); } }
+  p.vy = Math.min(p.vy + GRAV * dt, 1200);
+  p.y += p.vy * dt; p.onGround = false;
+  const cx = p.x + p.w / 2;
+  if (p.vy >= 0){
+    let best = null;
+    for (const f of lvl.floors){
+      const s = surfY(f, cx);
+      if (p.prevY <= s + 4 && p.y >= s && overSurface(f, cx) && (!best || s < best.s)) best = { f, s };
+    }
+    if (best){
+      p.y = best.s; p.vy = 0; p.onGround = true; p.floor = best.f.k;
+      // once the child is up, the hole closes behind it (sprinkles patch), so it cannot fall back through
+      const h = best.f.hole;
+      if (h && h.open){ h.open = false; h.patched = true; sparkle(h.x, best.f.yc, '#ffffff', 10); }
+    }
+  } else {
+    for (const f of lvl.floors){
+      if (!f.solid) continue;
+      const under = surfY(f, cx) + PTHICK, top = p.y - p.h, prevTop = p.prevY - p.h;
+      if (prevTop >= under - 2 && top <= under && !(f.hole.open && Math.abs(cx - f.hole.x) < f.hole.w / 2 - 6)){ p.y = under + p.h; p.vy = 40; }
+    }
+  }
+  if (p.onGround){ p.coyote = 0.1; if (!was) dust(cx, p.y); }
+  if (p.onGround && p.vx !== 0) p.phase += dt * 13;
+  // barriers fall over, then their hole opens
+  for (const b of lvl.barriers){
+    if (b.state !== 'fall') continue;
+    b.t += dt;
+    if (b.t > 0.9){ b.state = 'gone'; lvl.floors[b.floor].hole.open = true; const y = surfY(lvl.floors[b.floor], b.x); sparkle(b.x, y - 50, '#ffe36b', 16); puff(b.x, y - 40, 10); sfx('heal'); }
+  }
+  for (const s of lvl.squish) s.t += dt;
+  lvl.squish = lvl.squish.filter(s => s.t < 0.4);
+}
+
+function nextLockedFloor(){
+  for (const b of lvl.barriers) if (b.state === 'stand' && b.floor > p.floor) return b.floor;
+  return null;
+}
+function updateParty(dt, active){
+  const L = lvl.L;
+  if (active){
+    lvl.spawnT -= dt;
+    if (lvl.spawnT <= 0 && lvl.rollers.length < 4){
+      lvl.spawnT = L.spawn * (0.8 + Math.random() * 0.4);
+      const locked = nextLockedFloor(), F = Math.max(0, (locked ?? lvl.N) - 1), f = lvl.floors[F];
+      const x = f.low > 0 ? WL + 26 : WR - 26;
+      if (!(p.floor === F && Math.abs(p.x - x) < 180)){
+        const kind = L.kinds[Math.floor(Math.random() * L.kinds.length)];
+        const r = kind === 'linse' ? 14 : kind === 'donut' ? 18 : 16;
+        lvl.rollers.push({ x, y: surfY(f, x) - r, r, kind, dir: f.low, vy:0, floor:F, bounces:0, rot:0, col: BEAR_COLS[Math.floor(Math.random() * 5)], born:0 });
+        sparkle(x, surfY(f, x) - r, '#ffffff', 8);
+      }
+    }
+  }
+  for (const q of lvl.rollers){
+    q.born += dt;
+    const sp = L.speed;
+    if (q.floor !== null){
+      const f = lvl.floors[q.floor];
+      q.x += q.dir * sp * dt; q.rot += q.dir * sp * dt / q.r;
+      if (q.x - q.r < WL){ q.x = WL + q.r; q.dir = 1; q.bounces++; squishWall(-1, q.y); }
+      if (q.x + q.r > WR){ q.x = WR - q.r; q.dir = -1; q.bounces++; squishWall(1, q.y); }
+      for (const b of lvl.barriers) if (b.state === 'stand' && b.floor === q.floor && Math.abs(q.x - b.x) < 44 + q.r){ q.dir = q.x < b.x ? -1 : 1; q.x = b.x + q.dir * (45 + q.r); q.bounces++; }
+      if (!overSurface(f, q.x)){ q.floor = null; q.vy = 0; }
+      else q.y = surfY(f, q.x) - q.r;
+    } else {
+      const prevB = q.y + q.r;
+      q.vy += 1800 * dt; q.y += q.vy * dt;
+      for (const f of lvl.floors){
+        const s = surfY(f, q.x);
+        if (prevB <= s + 4 && q.y + q.r >= s && overSurface(f, q.x)){ q.floor = f.k; q.y = s - q.r; q.vy = 0; break; }
+      }
+    }
+    if (q.bounces >= 4 || (q.floor === 0 && q.bounces >= 1) || q.y > lvl.HH + 100){ q.dead = true; puff(q.x, q.y, 6); continue; }
+    if (!active || state !== 'play') continue;
+    const hop = q.kind === 'donut' ? Math.abs(Math.sin(q.born * 5)) * 9 : 0;
+    const pb = { x: p.x + 4, y: p.y - p.h + 8, w: p.w - 8, h: p.h - 8 };
+    if (circBox({ x:q.x, y:q.y - hop, r:q.r - 2 }, pb)){
+      if (p.vy > 60 && p.prevY <= q.y - hop - q.r + 10){ q.dead = true; p.vy = -460; sfx('stomp'); sparkle(q.x, q.y, q.col, 10); }
+      else hurt();
+    }
+  }
+  lvl.rollers = lvl.rollers.filter(q => !q.dead);
+}
+function checkPartyGoal(){
+  if (p.floor === lvl.N && p.onGround && Math.abs(p.x + p.w / 2 - lvl.tableX) < 80){
+    state = 'win'; endT = 2.6; p.stand = true; p.vx = 0; sfx('win');
+    recordWin('party', lvlIndex, got);
+    lvl.giftAnim = { t:0, x0: p.x + p.w / 2, y0: p.y - 40 };
+    confetti(lvl.tableX, lvl.goal.y - 160, 80);
+  }
+}
+function partyCamera(dt, snap){
+  const target = Math.max(0, Math.min(lvl.HH - H, p.y - H * 0.62));
+  camY = snap ? target : camY + (target - camY) * Math.min(1, dt * 5);
+}
+
+/* ---------- drawing ---------- */
+function drawGummyBear(x, y, col, sx){
+  g.save(); g.translate(x, y); g.scale(sx, 1);
+  g.globalAlpha = 0.9; g.fillStyle = col;
+  circ(g, -6, -15, 4.5); g.fill(); circ(g, 6, -15, 4.5); g.fill();
+  circ(g, 0, -9, 9); g.fill(); ell(g, 0, 5, 11, 12); g.fill();
+  ell(g, -10, 2, 4, 6); g.fill(); ell(g, 10, 2, 4, 6); g.fill(); ell(g, -6, 16, 5, 4); g.fill(); ell(g, 6, 16, 5, 4); g.fill();
+  g.globalAlpha = 1; g.fillStyle = 'rgba(255,255,255,.55)'; ell(g, -3, -12, 3, 2); g.fill(); ell(g, -4, 2, 3, 5); g.fill();
+  g.fillStyle = 'rgba(42,36,64,.8)'; circ(g, -3, -9, 1.4); g.fill(); circ(g, 3, -9, 1.4); g.fill();
+  g.strokeStyle = 'rgba(42,36,64,.7)'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, -6, 2, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
+  g.restore();
+}
+function drawGummyWalls(){
+  const y0 = Math.floor((camY - 60) / 42), y1 = Math.ceil((camY + H + 60) / 42);
+  for (const side of [-1, 1]){
+    const bx = side < 0 ? WL / 2 : PW - WL / 2;
+    for (let j = y0; j <= y1; j++){
+      const y = j * 42 + 21;
+      let sx = 1;
+      for (const s of lvl.squish) if (s.side === side && Math.abs(s.y - y) < 70) sx = Math.min(sx, 1 - 0.32 * Math.sin(s.t / 0.4 * Math.PI) * (1 - Math.abs(s.y - y) / 70));
+      drawGummyBear(bx + side * (1 - sx) * 10, y, BEAR_COLS[(j % BEAR_COLS.length + BEAR_COLS.length) % BEAR_COLS.length], sx);
+    }
+  }
+}
+function drawFloorPiece(f, a, b, th){
+  const ya = surfY(f, a), yb = surfY(f, b);
+  if (f.solid){ // chocolate floor: you cannot jump through
+    g.fillStyle = '#7a4a2c'; g.beginPath(); g.moveTo(a, ya); g.lineTo(b, yb); g.lineTo(b, yb + PTHICK); g.lineTo(a, ya + PTHICK); g.closePath(); g.fill();
+    g.strokeStyle = '#5e3620'; g.lineWidth = 2;
+    for (let x = a + 30; x < b - 4; x += 30){ g.beginPath(); g.moveTo(x, surfY(f, x) + 2); g.lineTo(x, surfY(f, x) + PTHICK - 2); g.stroke(); }
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(a, ya + 2); g.lineTo(b, yb + 2); g.lineTo(b, yb + 6); g.lineTo(a, ya + 6); g.closePath(); g.fill();
+  } else { // waffle with icing: jump-through
+    g.fillStyle = th.plankDark; g.beginPath(); g.moveTo(a, ya + 4); g.lineTo(b, yb + 4); g.lineTo(b, yb + PTHICK); g.lineTo(a, ya + PTHICK); g.closePath(); g.fill();
+    g.fillStyle = th.plank; g.beginPath(); g.moveTo(a, ya); g.lineTo(b, yb); g.lineTo(b, yb + PTHICK - 4); g.lineTo(a, ya + PTHICK - 4); g.closePath(); g.fill();
+    g.strokeStyle = th.plankDark; g.lineWidth = 1.5;
+    for (let x = a + 12; x < b; x += 14){ g.beginPath(); g.moveTo(x, surfY(f, x) + 3); g.lineTo(x + 6, surfY(f, x) + PTHICK - 5); g.stroke(); }
+    g.fillStyle = th.icing; g.beginPath(); g.moveTo(a, ya - 2); g.lineTo(b, yb - 2);
+    for (let x = b; x > a; x -= 18){ const y = surfY(f, x); g.lineTo(x, y + 4); g.quadraticCurveTo(x - 4, y + 9 + (hash(x | 0) * 5), x - 9, y + 4); }
+    g.closePath(); g.fill();
+  }
+}
+function drawFloors(th){
+  for (const f of lvl.floors){
+    const ys = surfY(f, PW / 2); if (ys < camY - 60 || ys > camY + H + 60) continue;
+    const cuts = [];
+    if (f.gap) cuts.push(f.gap);
+    if (f.hole && !f.hole.patched) cuts.push([f.hole.x - f.hole.w / 2, f.hole.x + f.hole.w / 2]);
+    let a = WL;
+    for (const [c0, c1] of cuts.sort((m, n) => m[0] - n[0])){ if (c0 > a) drawFloorPiece(f, a, c0, th); a = c1; }
+    if (a < WR) drawFloorPiece(f, a, WR, th);
+    if (f.hole && f.hole.patched){
+      const hx = f.hole.x, hy = surfY(f, hx);
+      g.fillStyle = '#ffd0e4'; rr(g, hx - f.hole.w / 2, hy - 2, f.hole.w, PTHICK + 2, 6); g.fill();
+      for (let i = 0; i < 12; i++){ g.fillStyle = BEAR_COLS[i % 6]; g.save(); g.translate(hx - f.hole.w / 2 + 6 + hash(i + hx) * (f.hole.w - 12), hy + 3 + hash(i * 3 + hx) * 10); g.rotate(i); g.fillRect(-4, -1.2, 8, 2.4); g.restore(); }
+    }
+    if (f.k === 0){ g.fillStyle = th.plankDark; g.fillRect(WL, surfY(f, WL) + PTHICK - 2, WR - WL, 80); }
+  }
+}
+function sweetFace(x, y, s, tongue){
+  g.fillStyle = '#fff'; circ(g, x - 9 * s, y, 6 * s); g.fill(); circ(g, x + 9 * s, y, 6 * s); g.fill();
+  g.fillStyle = '#2a2440'; circ(g, x - 8 * s, y + 1, 3 * s); g.fill(); circ(g, x + 10 * s, y + 1, 3 * s); g.fill();
+  g.fillStyle = '#4a2030'; g.beginPath(); g.arc(x, y + 10 * s, 8 * s, 0, Math.PI); g.closePath(); g.fill();
+  g.fillStyle = '#ff7a9a'; ell(g, x + 4 * s, y + 15 * s + tongue, 5 * s, 6 * s); g.fill();
+  g.fillStyle = 'rgba(255,120,150,.5)'; circ(g, x - 16 * s, y + 8 * s, 4 * s); g.fill(); circ(g, x + 16 * s, y + 8 * s, 4 * s); g.fill();
+}
+function drawBarrier(b){
+  if (b.state === 'gone') return;
+  const f = lvl.floors[b.floor], base = surfY(f, b.x) + PTHICK;
+  const k = b.state === 'fall' ? Math.min(1, b.t / 0.9) : 0;
+  g.save(); g.translate(b.x, base);
+  if (k > 0){ g.translate(b.side * k * 60, -Math.sin(k * Math.PI) * 30); g.rotate(b.side * k * 1.6); g.globalAlpha = 1 - Math.max(0, (k - 0.6) / 0.4); }
+  const tongue = Math.sin(t * 6) * 3;
+  if (b.kind === 'lolli'){
+    g.fillStyle = '#ffffff'; g.fillRect(-5, -60, 10, 60);
+    g.fillStyle = '#fff'; circ(g, 0, -92, 44); g.fill();
+    g.strokeStyle = '#ff5d8f'; g.lineWidth = 9; g.beginPath(); for (let a = 0; a < 15; a += 0.25){ const r = a * 2.8; g.lineTo(Math.cos(a) * r, -92 + Math.sin(a) * r); } g.stroke();
+    g.strokeStyle = '#2a2440'; g.lineWidth = 3; circ(g, 0, -92, 44); g.stroke();
+    sweetFace(0, -96, 1.2, tongue);
+  } else if (b.kind === 'cupcake'){
+    g.fillStyle = '#ffb3d1'; g.beginPath(); g.moveTo(-40, -50); g.lineTo(40, -50); g.lineTo(30, 0); g.lineTo(-30, 0); g.closePath(); g.fill();
+    g.strokeStyle = '#ff7aa8'; g.lineWidth = 3; for (let x = -32; x <= 32; x += 12){ g.beginPath(); g.moveTo(x, -48); g.lineTo(x * 0.78, -2); g.stroke(); }
+    g.fillStyle = '#fff4e6'; circ(g, -24, -60, 20); g.fill(); circ(g, 24, -60, 20); g.fill(); circ(g, 0, -78, 28); g.fill(); circ(g, 0, -56, 26); g.fill();
+    g.fillStyle = '#ff3d5c'; circ(g, 0, -108, 9); g.fill();
+    for (let i = 0; i < 10; i++){ g.fillStyle = BEAR_COLS[i % 5]; g.save(); g.translate(-30 + hash(i) * 60, -86 + hash(i + 9) * 40); g.rotate(i); g.fillRect(-4, -1.5, 8, 3); g.restore(); }
+    sweetFace(0, -64, 1.1, tongue);
+  } else {
+    g.fillStyle = '#fff8ee'; g.fillRect(-44, -12, 88, 12);
+    g.fillStyle = '#6b3a24'; g.beginPath(); g.moveTo(-42, -10); g.lineTo(-42, -60); g.quadraticCurveTo(-40, -124, 0, -124); g.quadraticCurveTo(40, -124, 42, -60); g.lineTo(42, -10); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.25)'; ell(g, -18, -92, 8, 18); g.fill();
+    sweetFace(0, -70, 1.2, tongue);
+  }
+  g.restore();
+}
+function drawBalloon(x, y, col, s){
+  g.strokeStyle = 'rgba(80,80,110,.6)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y + 18 * s); g.quadraticCurveTo(x + 6, y + 30 * s, x, y + 40 * s); g.stroke();
+  g.fillStyle = col; ell(g, x, y, 14 * s, 18 * s); g.fill();
+  g.beginPath(); g.moveTo(x - 4 * s, y + 20 * s); g.lineTo(x + 4 * s, y + 20 * s); g.lineTo(x, y + 16 * s); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.55)'; ell(g, x - 5 * s, y - 6 * s, 3.5 * s, 6 * s); g.fill();
+}
+function drawPartyBalloons(){
+  for (const s of lvl.stars){ if (!s.got) drawBalloon(s.x, s.y + Math.sin(t * 2.4 + s.x) * 5, s.col, 1); }
+}
+function drawRoller(q){
+  const hop = q.kind === 'donut' ? Math.abs(Math.sin(q.born * 5)) * 9 : 0;
+  g.save(); g.translate(q.x, q.y - hop); g.rotate(q.rot);
+  if (q.kind === 'bonbon'){
+    g.fillStyle = q.col; circ(g, 0, 0, q.r); g.fill();
+    g.strokeStyle = '#ffffff'; g.lineWidth = 4; for (let i = 0; i < 3; i++){ g.beginPath(); g.arc(0, 0, q.r - 3, i * 2.1, i * 2.1 + 1.1); g.stroke(); }
+  } else if (q.kind === 'linse'){
+    g.fillStyle = q.col; ell(g, 0, 0, q.r, q.r * 0.92); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.5)'; ell(g, -4, -5, 4, 3); g.fill();
+  } else {
+    g.fillStyle = '#e8a35c'; circ(g, 0, 0, q.r); g.fill();
+    g.fillStyle = '#ff9fd6'; circ(g, 0, 0, q.r - 3); g.fill();
+    for (let i = 0; i < 7; i++){ g.fillStyle = BEAR_COLS[i % 5]; g.save(); g.rotate(i * 0.9); g.fillRect(q.r * 0.55, -1.2, 5, 2.4); g.restore(); }
+    g.fillStyle = '#c97a3c'; circ(g, 0, 0, q.r * 0.38); g.fill(); g.fillStyle = '#a85f2a'; circ(g, 0, 0, q.r * 0.28); g.fill();
+  }
+  g.restore();
+  // a little face that does not roll
+  g.fillStyle = '#2a2440'; circ(g, q.x - 4, q.y - hop - 2, 1.8); g.fill(); circ(g, q.x + 4, q.y - hop - 2, 1.8); g.fill();
+}
+function drawTable(){
+  const tx = lvl.tableX, ty = lvl.goal.y, big = lvl.i === 2;
+  const showMo = knightId !== 'moritz', showOs = knightId !== 'oskar';
+  const cheer = state === 'win' || state === 'won';
+  // Mo and Os sit behind the table
+  const seat = [];
+  if (showMo) seat.push(['moritz', tx - (showOs ? 62 : 0)]);
+  if (showOs) seat.push(['oskar', tx + (showMo ? 62 : 0)]);
+  for (const [id, x] of seat){
+    g.fillStyle = '#c9944f'; rr(g, x - 20, ty - 70, 40, 70, 8); g.fill(); // chair back
+    g.save(); g.translate(x, ty - 26 + (cheer ? -Math.abs(Math.sin(t * 8 + x)) * 8 : 0));
+    drawPartyKid(g, KNIGHTS[id], { phase:0, air:false, t, noGift:true, cheer });
+    g.restore();
+  }
+  // banner
+  g.strokeStyle = '#b07a4a'; g.lineWidth = 2; g.beginPath(); g.moveTo(tx - 120, ty - 150); g.quadraticCurveTo(tx, ty - 120, tx + 120, ty - 150); g.stroke();
+  const flags = ['M', 'o', '&', 'O', 's'];
+  flags.forEach((ch, i) => {
+    const fx = tx - 80 + i * 40, fy = ty - 150 + Math.sin((i + 0.5) / 5 * Math.PI) * 26;
+    g.fillStyle = BEAR_COLS[i]; g.beginPath(); g.moveTo(fx - 15, fy); g.lineTo(fx + 15, fy); g.lineTo(fx, fy + 30); g.closePath(); g.fill();
+    fitText(g, ch, fx, fy + 10, 18, 16, '#24305e');
+  });
+  // table with cloth
+  g.fillStyle = '#ffffff'; rr(g, tx - 110, ty - 52, 220, 52, 6); g.fill();
+  g.fillStyle = lvl.th.accent; for (let x = tx - 104; x < tx + 104; x += 20){ g.beginPath(); g.arc(x + 10, ty - 52, 10, 0, Math.PI); g.fill(); }
+  // cake
+  const cw = big ? 92 : 70, ch2 = big ? 64 : 44;
+  g.fillStyle = '#ffe2ef'; rr(g, tx - cw / 2, ty - 52 - ch2, cw, ch2, 8); g.fill();
+  if (big){ g.fillStyle = '#ffd0e4'; rr(g, tx - 30, ty - 52 - ch2 - 30, 60, 32, 8); g.fill(); }
+  g.fillStyle = '#ff8fb8'; rr(g, tx - cw / 2, ty - 52 - ch2, cw, 10, 6); g.fill();
+  for (let i = 0; i < 6; i++){
+    const cx = tx - 25 + i * 10, cy = ty - 52 - ch2 - (big ? 30 : 0);
+    g.fillStyle = BEAR_COLS[i]; g.fillRect(cx - 2, cy - 16, 4, 16);
+    g.fillStyle = '#ffb347'; ell(g, cx, cy - 21 + Math.sin(t * 12 + i) * 1, 3, 5); g.fill(); g.fillStyle = '#fff6b0'; ell(g, cx, cy - 20, 1.5, 2.5); g.fill();
+  }
+  // presents on the table
+  drawGiftBox(g, tx - 88, ty - 70, 26, 20, KNIGHTS.kilian);
+  drawGiftBox(g, tx + 86, ty - 68, 24, 18, KNIGHTS.lenia);
+  if (lvl.giftAnim){
+    const a = lvl.giftAnim, k = Math.min(1, a.t / 0.7), x = a.x0 + (tx + 52 - a.x0) * k, y = a.y0 + (ty - 66 - a.y0) * k - Math.sin(k * Math.PI) * 60;
+    drawGiftBox(g, x, y, 24, 20, KNIGHTS[knightId]);
+  }
+  drawBalloon(tx - 116, ty - 120, '#ff5d6c', 1.1); drawBalloon(tx + 116, ty - 124, '#7fd3ff', 1.1);
+}
+function drawGiftBox(c, x, y, w, h, k){
+  const box = ['gelb', 'lindgrün'].includes(k.word) ? '#7fd3ff' : '#ffd447';
+  c.fillStyle = box; rr(c, x - w / 2, y - h / 2, w, h, 3); c.fill();
+  c.fillStyle = shade(box, 0.35); rr(c, x - w / 2 - 2, y - h / 2 - 4, w + 4, 6, 2); c.fill();
+  c.fillStyle = k.color; c.fillRect(x - 2.5, y - h / 2 - 4, 5, h + 4); c.fillRect(x - w / 2, y - 2, w, 4);
+  c.beginPath(); c.ellipse(x - 5, y - h / 2 - 6, 5, 3.5, -0.4, 0, 7); c.fill(); c.beginPath(); c.ellipse(x + 5, y - h / 2 - 6, 5, 3.5, 0.4, 0, 7); c.fill();
+  // keep the name readable when the child is drawn mirrored
+  c.save(); c.translate(x + w * 0.24, y + h * 0.22); if (c.getTransform().a < 0) c.scale(-1, 1);
+  fitText(c, k.letter, 0, 0, w * 0.42, h * 0.38, '#24305e'); c.restore();
+}
+function drawPartyHat(c, k){
+  c.save(); c.translate(2, -64); c.rotate(-0.14);
+  c.fillStyle = k.color; c.beginPath(); c.moveTo(-12, 3); c.lineTo(0, -27); c.lineTo(12, 3); c.closePath(); c.fill();
+  c.strokeStyle = k.dark; c.lineWidth = 1.4; c.stroke();
+  c.fillStyle = '#ffffff'; circ(c, -4, -3, 2.2); c.fill(); circ(c, 4, -9, 2); c.fill(); circ(c, -1, -16, 1.8); c.fill();
+  c.fillStyle = shade(k.light, 0.3); ell(c, 0, 3, 13, 3.2); c.fill();
+  c.fillStyle = '#ffd447'; circ(c, 0, -28, 4.6); c.fill(); c.fillStyle = '#fff1a6'; circ(c, -1.3, -29.3, 1.6); c.fill();
+  c.restore();
+}
+function drawPartyKid(c, k, o){
+  const s = Math.sin(o.phase), run = !o.air && !o.stand && !o.noGift;
+  const bob = run ? -Math.abs(Math.cos(o.phase)) * 3 : 0;
+  c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
+  const leg = (hx, ang, back) => {
+    c.save(); c.translate(hx, -16 + bob); c.rotate(ang);
+    c.fillStyle = back ? '#3f4a7a' : '#4b5894'; rr(c, -4.5, -2, 9, 12, 3); c.fill();
+    c.fillStyle = back ? shade(k.color, -0.25) : k.color; rr(c, -5, 9, 13, 7, 3); c.fill();
+    c.fillStyle = '#ffffff'; c.fillRect(-5, 14, 13, 2);
+    c.restore();
+  };
+  const la = o.air ? 0.65 : (run ? s * 0.8 : 0.1);
+  leg(-4, o.air ? 0.5 : -la, true); leg(4, o.air ? -0.7 : la, false);
+  c.translate(0, bob);
+  c.fillStyle = k.color; rr(c, -11, -38, 22, 24, 8); c.fill();
+  c.fillStyle = '#ffffff'; for (const [dx, dy] of [[-5, -31], [4, -26], [-3, -20], [6, -34]]){ circ(c, dx, dy, 1.6); c.fill(); }
+  c.fillStyle = shade(k.light, 0.35); c.beginPath(); c.moveTo(-6, -38); c.lineTo(0, -32); c.lineTo(6, -38); c.closePath(); c.fill();
+  drawHead(c, k, o);
+  drawPartyHat(c, k);
+  if (o.noGift){
+    c.fillStyle = SKIN;
+    if (o.cheer){ circ(c, -14, -48, 3.6); c.fill(); circ(c, 16, -48, 3.6); c.fill(); }
+    else { circ(c, -9, -22, 3.4); c.fill(); circ(c, 11, -22, 3.4); c.fill(); }
+  } else {
+    const gy = o.giftOy || 0;
+    if (gy < -6){ c.fillStyle = SKIN; circ(c, 3, -60, 3.5); c.fill(); circ(c, 14, -60, 3.5); c.fill(); drawGiftBox(c, 8, -40 + gy, 24, 20, k); }
+    else { drawGiftBox(c, 8, -30, 24, 20, k); c.fillStyle = SKIN; circ(c, -3, -28, 3.4); c.fill(); circ(c, 19, -28, 3.4); c.fill(); }
+  }
+  c.restore();
+}
+function drawPartyBg(th){
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, th.top); gr.addColorStop(1, th.bot);
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  const par = 0.45, off = camY * par;
+  if (th.look === 'garten'){
+    g.fillStyle = '#ffe066'; circ(g, W * 0.82, 90 - off * 0.1, 40); g.fill();
+    for (let i = 0; i < 6; i++){ const x = mod(i * 260 + 40 - t * 6, W + 300) - 150, y = mod(60 + i * 170 - off * 0.6, H + 200) - 100; g.globalAlpha = 0.9; cloud(x, y, 0.8); g.globalAlpha = 1; }
+    const groundY = lvl.HH - 50 - camY;
+    g.fillStyle = '#8ccd72'; g.fillRect(0, groundY - 40, W, H);
+    for (let i = 0; i < 10; i++){ const x = i * 140 + 30; g.fillStyle = '#5aa85f'; circ(g, x, groundY - 60, 40); g.fill(); g.fillStyle = '#9a6a43'; g.fillRect(x - 5, groundY - 30, 10, 30); }
+  } else {
+    // wallpaper stripes
+    g.fillStyle = th.stripe; for (let x = 0; x < W; x += 56) g.fillRect(x, 0, 24, H);
+    if (th.look === 'zimmer'){ g.fillStyle = 'rgba(255,255,255,.6)'; for (let i = 0; i < 40; i++){ circ(g, hash(i) * W, mod(hash(i + 40) * 1400 - off, 1400) - 200, 4); g.fill(); } }
+    // windows with sky
+    for (let i = -1; i < 4; i++){
+      const wy = mod(i * 420 + 120 - off, 1680) - 300;
+      for (const wx of [W * 0.08, W * 0.92 - 110]){
+        g.fillStyle = '#ffffff'; rr(g, wx - 6, wy - 6, 122, 152, 14); g.fill();
+        g.fillStyle = '#8fd3ff'; rr(g, wx, wy, 110, 140, 10); g.fill();
+        g.globalAlpha = 0.9; cloud(wx + 30, wy + 50, 0.45); g.globalAlpha = 1;
+        g.fillStyle = '#ffffff'; g.fillRect(wx + 52, wy, 6, 140); g.fillRect(wx, wy + 66, 110, 6);
+      }
+    }
+  }
+  // garlands (pennants or lanterns) and floating balloons
+  g.globalAlpha = 0.55;
+  for (let i = 0; i < 5; i++){
+    const y = mod(i * 300 + 60 - off, 1500) - 200;
+    g.strokeStyle = th.look === 'garten' ? '#7a5a45' : '#c9944f'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(0, y); g.quadraticCurveTo(W / 2, y + 50, W, y); g.stroke();
+    for (let x = 30; x < W; x += 50){
+      const yy = y + 50 * (1 - Math.pow((x - W / 2) / (W / 2), 2)) * 0.5;
+      if (th.look === 'garten'){ g.fillStyle = BEAR_COLS[(x / 50 + i) % 5 | 0]; ell(g, x, yy + 14, 11, 14); g.fill(); g.fillStyle = 'rgba(255,255,255,.3)'; ell(g, x - 3, yy + 10, 3, 6); g.fill(); }
+      else { g.fillStyle = BEAR_COLS[(x / 50 + i) % 6 | 0]; g.beginPath(); g.moveTo(x - 13, yy); g.lineTo(x + 13, yy); g.lineTo(x, yy + 24); g.closePath(); g.fill(); }
+    }
+  }
+  g.globalAlpha = 1;
+  for (let i = 0; i < 8; i++){
+    const x = mod(hash(i + 3) * W + Math.sin(t * 0.7 + i) * 20, W), y = mod(H + 80 - (t * 18 + i * 140) - off * 0.3, H + 200) - 100;
+    g.globalAlpha = 0.55; drawBalloon(x, y, BEAR_COLS[i % 6], 1.2); g.globalAlpha = 1;
+  }
+}
+function renderParty(){
+  const th = lvl.th, ox = Math.round((W - PW) / 2);
+  cam = 0;
+  drawPartyBg(th);
+  g.save(); g.translate(ox, -camY);
+  g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(WL, camY - 10, WR - WL, H + 20);
+  drawFloors(th);
+  drawSigns();
+  drawTable();
+  for (const b of lvl.barriers) drawBarrier(b);
+  drawPartyBalloons(); drawHealHearts();
+  for (const q of lvl.rollers) drawRoller(q);
+  const inGame = state !== 'menu' && state !== 'levels';
+  if (p && inGame) drawPlayer();
+  drawGummyWalls();
+  drawParts();
+  g.restore();
+}
+
 /* ---------- game state ---------- */
 let state = 'menu', lvlIndex = 0, cam = 0, t = 0, readyT = 0, endT = 0, hearts = 3, got = 0, playT = 0;
 let p = null, projs = [], parts = [], cp = null;
@@ -1501,6 +1983,7 @@ function newPlayer(x, y){ return { x, y, w:28, h:60, vx:0, vy:0, prevY:y, onGrou
 function startLevel(i){
   lvlIndex = i;
   if (mode === 'space'){ lvl = buildSpace(i); p = newAstro(); }
+  else if (mode === 'party'){ lvl = buildParty(i); p = newPartyPlayer(); partyCamera(0, true); }
   else { lvl = buildLevel(i, mode); p = newPlayer(60, GY); }
   cp = { x:60, y:GY };
   hearts = 3; got = 0; projs = []; parts = []; playT = 0;
@@ -1724,17 +2207,23 @@ function step(dt){
   t += dt;
   if (state === 'menu' || state === 'levels'){
     cam += 55 * dt; if (cam > lvl.width - W) cam = 0;
-    lvl.space ? updateSpace(dt, false) : updateEnemies(dt, false);
+    if (lvl.party){ cam = 0; camY = (lvl.HH - H) * (0.5 + 0.5 * Math.sin(t * 0.25)); updateParty(dt, false); }
+    else lvl.space ? updateSpace(dt, false) : updateEnemies(dt, false);
   } else if (state === 'ready'){
-    readyT -= dt; lvl.space ? updateSpace(dt, false) : updateEnemies(dt, false);
+    readyT -= dt; if (lvl.party) partyCamera(dt, false); else lvl.space ? updateSpace(dt, false) : updateEnemies(dt, false);
     if (readyT <= 0) state = 'play';
   } else if (state === 'play'){
     playT += dt;
-    if (lvl.space){ updateAstro(dt); updateSpace(dt, true); updateSpaceProjs(dt); collectStars(); collectHearts(); checkSpaceGoal(); }
+    if (lvl.party){ updatePartyPlayer(dt); updateParty(dt, true); collectStars(); collectHearts(); checkPartyGoal(); partyCamera(dt, false); }
+    else if (lvl.space){ updateAstro(dt); updateSpace(dt, true); updateSpaceProjs(dt); collectStars(); collectHearts(); checkSpaceGoal(); }
     else { updatePlayer(dt); updateEnemies(dt, true); updateProjs(dt); collectStars(); collectHearts(); if (lvl.school) suckSweets(dt); checkGoal(); }
   } else if (state === 'dying'){
-    p.vy += (lvl.space ? 700 : GRAV) * dt; p.y += p.vy * dt; p.rot += dt * 7; if (lvl.space) updateSpace(dt, false);
+    p.vy += (lvl.space ? 700 : GRAV) * dt; p.y += p.vy * dt; p.rot += dt * 7; if (lvl.space) updateSpace(dt, false); if (lvl.party) updateParty(dt, false);
     endT -= dt; if (endT <= 0){ state = 'over'; showOver(); }
+  } else if (state === 'win' && lvl.party){
+    endT -= dt; lvl.giftAnim.t += dt; updateParty(dt, false);
+    if (Math.random() < 0.2) confetti(lvl.tableX + (Math.random() - .5) * 220, lvl.goal.y - 200, 3);
+    if (endT <= 0){ state = 'won'; showWin(); }
   } else if (state === 'win'){
     endT -= dt;
     if (lvl.space){ p.y += (lvl.goal.y - p.y) * Math.min(1, dt * 4); p.thrust = true; updateSpace(dt, false); }
@@ -2403,6 +2892,7 @@ function drawParts(){
 function drawPlayer(){
   if (p.hidden) return;
   g.save(); g.translate(p.x + p.w / 2 - cam, p.y);
+  if (p.dir < 0 && lvl.party) g.scale(-1, 1);
   if (state === 'dying'){ const oy = lvl.space ? 0 : 30; g.translate(0, -oy); g.rotate(p.rot); g.translate(0, oy); }
   if (p.inv > 0 && Math.floor(t * 14) % 2 === 0) g.globalAlpha = 0.35;
   if (lvl.space){
@@ -2421,6 +2911,7 @@ function drawPlayer(){
     g.beginPath(); g.moveTo(mx - SUCK_BASE, m.y); g.lineTo(mx - hw, top); g.moveTo(mx + SUCK_BASE, m.y); g.lineTo(mx + hw, top); g.stroke(); g.setLineDash([]);
     g.restore();
   }
+  if (lvl.party){ drawPartyKid(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', stand:p.stand, t, sad: state === 'dying', giftOy: p.gift ? p.gift.oy : 0, noGift: state === 'win' || state === 'won' }); g.restore(); return; }
   if (lvl.jedi){ drawJedi(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', shield:p.shield, t, sad: state === 'dying' }); g.restore(); return; }
   if (lvl.school){ drawKid(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', suck:p.suck, t, sad: state === 'dying' }); g.restore(); return; }
   drawKnight(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', shield:p.shield, t, sad: state === 'dying' });
@@ -2450,7 +2941,7 @@ function drawHUD(){
     g.globalAlpha = 1;
   }
   if (lvlIndex === 0 && (state === 'play' || state === 'ready') && playT < 8){
-    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Kurz tippen = hüpfen  ·  Lang drücken = Tüte saugt (dann kein Hüpfen!)' : lvl.jedi ? 'Kurz tippen = springen  ·  Lang drücken = Laserschwert-Schild' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
+    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Kurz tippen = hüpfen  ·  Lang drücken = Tüte saugt (dann kein Hüpfen!)' : lvl.jedi ? 'Kurz tippen = springen  ·  Lang drücken = Laserschwert-Schild' : lvl.party ? 'Kurz tippen = springen  ·  Lang drücken = Geschenk hochwerfen' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
     g.font = `700 19px ${FONT}`; const tw = g.measureText(msg).width;
     g.globalAlpha = Math.min(1, (8 - playT) / 1);
     g.fillStyle = 'rgba(36,48,94,.82)'; rr(g, W / 2 - tw / 2 - 18, 74, tw + 36, 38, 19); g.fill();
@@ -2462,6 +2953,7 @@ function drawHUD(){
 function render(){
   g.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
   const th = lvl.th;
+  if (lvl.party){ renderParty(); if (state !== 'menu' && state !== 'levels') drawHUD(); return; }
   if (lvl.space) renderSpace();
   else if (lvl.school){
     drawSky(th); drawTown(th); drawNear(th); drawWater(th);
@@ -2517,6 +3009,13 @@ function drawPreviews(){
       x.save(); x.translate(96, 102 + Math.sin(t * 2) * 6); x.scale(1.75, 1.75);
       drawAstronaut(x, k, { t, thrust: !sh && Math.sin(t * 2) < 0, shield: sh });
       x.restore();
+    } else if (mode === 'party'){
+      x.fillStyle = '#ffd0e2'; circ(x, 100, 92, 74); x.fill();
+      for (let i = 0; i < 10; i++){ x.fillStyle = BEAR_COLS[i % 6]; x.save(); x.translate(40 + hash(i) * 120, 25 + hash(i + 30) * 110 + Math.sin(t * 2 + i) * 4); x.rotate(i + t); x.fillRect(-4, -1.5, 8, 3); x.restore(); }
+      x.fillStyle = '#f3c98b'; ell(x, 100, 152, 70, 10); x.fill();
+      x.save(); x.translate(96, 150); x.scale(1.6, 1.6);
+      drawPartyKid(x, k, { phase: sh ? 0 : t * 11, air:false, stand: sh, t, giftOy: sh ? -Math.abs(Math.sin(t * 4)) * 40 : 0 });
+      x.restore();
     } else if (mode === 'jedi'){
       x.fillStyle = '#f0c983'; ell(x, 100, 152, 70, 10); x.fill();
       x.save(); x.translate(92, 150); x.scale(1.75, 1.75);
@@ -2552,6 +3051,7 @@ const HOWTO = {
   knight: 'Dein Ritter läuft von allein. <b>Kurz tippen</b>: springen. <b>Lang drücken</b>: stehen bleiben und den Schild hochhalten. Der Schild hält Feuerbälle und Eicheln ab.',
   school: 'Dein Schulkind läuft von allein. <b>Kurz tippen</b>: hüpfen. <b>Lang drücken</b>: die Schultüte saugt Süßigkeiten ein. Aber Vorsicht: Beim Saugen kann es nicht hüpfen und fällt leicht in ein Loch!',
   jedi: 'Dein junger Jedi läuft von allein. <b>Kurz tippen</b>: springen. <b>Lang drücken</b>: stehen bleiben und das Laserschwert zum Schutzschild wirbeln. Es wirft Laserschüsse zurück.',
+  party: 'Dein Geburtstagskind läuft von allein und dreht an den Gummibärchen-Wänden um. <b>Kurz tippen</b>: springen, auch durch die Waffelböden nach oben. <b>Lang drücken</b>: das Geschenk hochwerfen und die Riesen-Süßigkeit im Schokoboden umkippen. Bring das Geschenk ganz nach oben zum Geburtstagstisch!',
   space: 'Dein Astronaut fliegt von allein. <b>Drücken</b>: nach oben schweben. <b>Loslassen</b>: langsam sinken. <b>Lang halten</b>: Schutzschild an. Er wirft Schüsse zurück und schubst Kometen weg.',
 };
 function syncProgress(){
@@ -2568,10 +3068,10 @@ function setMode(m){
   for (const el of document.querySelectorAll('[data-sub]')) el.textContent = roleLabel(KNIGHTS[el.dataset.sub], mode);
   $('howto').innerHTML = HOWTO[mode];
   syncProgress();
-  lvl = mode === 'space' ? buildSpace(0) : buildLevel(0, mode); cam = 0; projs = [];
+  lvl = mode === 'space' ? buildSpace(0) : mode === 'party' ? buildParty(0) : buildLevel(0, mode); cam = 0; camY = 0; projs = [];
   $('jumpLabel').textContent = mode === 'space' ? 'Schweben' : mode === 'school' ? 'Hüpfen' : 'Springen';
-  $('jumpSmall').textContent = mode === 'space' ? 'lang: Schild' : mode === 'school' ? 'halten: Tüte' : mode === 'jedi' ? 'lang: Schwert' : 'halten: Schild';
-  $('jump').setAttribute('aria-label', mode === 'space' ? 'Schweben, lange halten für den Schutzschild' : mode === 'school' ? 'Hüpfen, gedrückt halten zum Süßigkeiten-Saugen' : mode === 'jedi' ? 'Springen, gedrückt halten für den Laserschwert-Schild' : 'Springen, gedrückt halten für den Schild');
+  $('jumpSmall').textContent = mode === 'space' ? 'lang: Schild' : mode === 'school' ? 'halten: Tüte' : mode === 'jedi' ? 'lang: Schwert' : mode === 'party' ? 'halten: Werfen' : 'halten: Schild';
+  $('jump').setAttribute('aria-label', mode === 'space' ? 'Schweben, lange halten für den Schutzschild' : mode === 'school' ? 'Hüpfen, gedrückt halten zum Süßigkeiten-Saugen' : mode === 'jedi' ? 'Springen, gedrückt halten für den Laserschwert-Schild' : mode === 'party' ? 'Springen, gedrückt halten zum Geschenk-Werfen' : 'Springen, gedrückt halten für den Schild');
 }
 for (const b of document.querySelectorAll('.role')) b.addEventListener('click', () => { if (mode !== b.dataset.mode){ sfx('click'); setMode(b.dataset.mode); } });
 function goMenu(){ syncProgress(); state = 'menu'; input.down = false; p = null; projs = []; if (lvl.mode !== mode) setMode(mode); showScreen('menu'); }
@@ -2583,25 +3083,26 @@ function openLevels(){
     const b = document.createElement('button'); b.className = 'lv';
     const sc = mode === 'school';
     const open = i < unlockedFor(mode); b.disabled = !open;
-    const best = bestFor(mode, i), total = (sp ? buildSpace(i) : buildLevel(i, mode)).totalStars;
+    const pt = mode === 'party';
+    const best = bestFor(mode, i), total = (sp ? buildSpace(i) : pt ? buildParty(i) : buildLevel(i, mode)).totalStars;
     const jd = mode === 'jedi';
-    b.style.setProperty('--a', sp ? STHEMES[i].top : sc ? KTHEMES[i].skyTop : jd ? JTHEMES[i].skyTop : THEMES[i].skyTop); b.style.setProperty('--b', sp ? STHEMES[i].bot : sc ? '#c96a4f' : jd ? JTHEMES[i].near : THEMES[i].near);
+    b.style.setProperty('--a', sp ? STHEMES[i].top : sc ? KTHEMES[i].skyTop : jd ? JTHEMES[i].skyTop : pt ? PTHEMES[i].top : THEMES[i].skyTop); b.style.setProperty('--b', sp ? STHEMES[i].bot : sc ? '#c96a4f' : jd ? JTHEMES[i].near : pt ? PTHEMES[i].accent : THEMES[i].near);
     const lock = '<svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-    b.innerHTML = `<span class="sky"><span class="num">${i + 1}</span></span><span class="txt"><span class="lvname">${L.name}</span><span class="lvsub">${open ? L.sub : lock + ' Erst Level ' + i + ' schaffen'}</span>${open ? `<span class="lvbest">${best === undefined ? 'Noch kein Rekord' : `${sc ? CANDY_SVG : STAR_SVG} Rekord: ${best} von ${total}`}</span>` : ''}</span>`;
+    b.innerHTML = `<span class="sky"><span class="num">${i + 1}</span></span><span class="txt"><span class="lvname">${L.name}</span><span class="lvsub">${open ? L.sub : lock + ' Erst Level ' + i + ' schaffen'}</span>${open ? `<span class="lvbest">${best === undefined ? 'Noch kein Rekord' : `${sc ? CANDY_SVG : jd ? CRYSTAL_SVG : pt ? BALLOON_SVG : STAR_SVG} Rekord: ${best} von ${total}`}</span>` : ''}</span>`;
     b.addEventListener('click', () => { sfx('click'); startLevel(i); });
     box.appendChild(b);
   });
-  $('lvTitle').textContent = `Wohin ${sp ? 'fliegt' : mode === 'school' ? 'läuft' : mode === 'jedi' ? 'reist' : 'reitet'} ${KNIGHTS[knightId].name}?`;
+  $('lvTitle').textContent = mode === 'party' ? `Wo feiert ${KNIGHTS[knightId].name}?` : `Wohin ${sp ? 'fliegt' : mode === 'school' ? 'läuft' : mode === 'jedi' ? 'reist' : 'reitet'} ${KNIGHTS[knightId].name}?`;
   showScreen('levels');
 }
 const STAR_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.2l-5.9 3.3 1.3-6.6-4.9-4.5 6.6-.8z" fill="#ffd93d" stroke="#24305e" stroke-width="2" stroke-linejoin="round"/></svg>';
 const CANDY_SVG = '<svg viewBox="0 0 24 24"><path d="M7 12 2.5 8.5v7zM17 12l4.5-3.5v7z" fill="#ff5d8f" stroke="#24305e" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="5.5" fill="#ff5d8f" stroke="#24305e" stroke-width="1.8"/></svg>';
 function showWin(){
-  const k = KNIGHTS[knightId], L = LV(), last = lvlIndex === L.length - 1, sp = !!lvl.space, sc = !!lvl.school, jd = !!lvl.jedi;
+  const k = KNIGHTS[knightId], L = LV(), last = lvlIndex === L.length - 1, sp = !!lvl.space, sc = !!lvl.school, jd = !!lvl.jedi, pt = !!lvl.party;
   $('msgTitle').textContent = last ? 'Alle Abenteuer geschafft!' : 'Hurra, geschafft!';
-  $('msgStars').innerHTML = `${sc ? CANDY_SVG : STAR_SVG} ${got} von ${lvl.totalStars}` + (newRecord ? ' <span class="record">Neuer Rekord!</span>' : ` <span class="recordold">Rekord: ${bestFor(lvl.mode, lvlIndex)}</span>`);
+  $('msgStars').innerHTML = `${sc ? CANDY_SVG : jd ? CRYSTAL_SVG : pt ? BALLOON_SVG : STAR_SVG} ${got} von ${lvl.totalStars}` + (newRecord ? ' <span class="record">Neuer Rekord!</span>' : ` <span class="recordold">Rekord: ${bestFor(lvl.mode, lvlIndex)}</span>`);
   const f = k.sex === 'f';
-  $('msgText').textContent = last ? (sp ? `${k.name} ist ${f ? 'die mutigste Astronautin' : 'der mutigste Astronaut'} im ganzen Weltall.` : sc ? `${k.name} ist das fröhlichste Schulkind in ganz Bützow.` : jd ? `${k.name} ist ${f ? 'die mutigste junge' : 'der mutigste junge'} Jedi der ganzen Galaxis.` : `${k.name} ist ${f ? 'die tapferste Ritterin' : 'der tapferste Ritter'} im ganzen Land.`) : `${k.name} hat ${sp ? 'die Raumstation' : sc ? 'die Schule' : jd ? (f ? 'ihr Raumschiff' : 'sein Raumschiff') : 'die Burg'} erreicht. Als Nächstes: ${L[lvlIndex + 1].name}!`;
+  $('msgText').textContent = pt ? (last ? `${k.name} hat alle Geschenke gebracht. Das war die schönste Party!` : `${k.name} hat das Geschenk auf den Geburtstagstisch gestellt. Als Nächstes: ${L[lvlIndex + 1].name}!`) : last ? (sp ? `${k.name} ist ${f ? 'die mutigste Astronautin' : 'der mutigste Astronaut'} im ganzen Weltall.` : sc ? `${k.name} ist das fröhlichste Schulkind in ganz Bützow.` : jd ? `${k.name} ist ${f ? 'die mutigste junge' : 'der mutigste junge'} Jedi der ganzen Galaxis.` : `${k.name} ist ${f ? 'die tapferste Ritterin' : 'der tapferste Ritter'} im ganzen Land.`) : `${k.name} hat ${sp ? 'die Raumstation' : sc ? 'die Schule' : jd ? (f ? 'ihr Raumschiff' : 'sein Raumschiff') : 'die Burg'} erreicht. Als Nächstes: ${L[lvlIndex + 1].name}!`;
   $('msgA').textContent = last ? 'Nochmal von vorn' : 'Nächstes Level';
   $('msgA').onclick = () => { sfx('click'); startLevel(last ? 0 : lvlIndex + 1); };
   $('msgB').textContent = 'Zum Menü';
@@ -2646,6 +3147,7 @@ addEventListener('blur', () => { pointers.clear(); input.down = false; });
 
 /* ---------- HUD (HTML, so it never hides behind the buttons) ---------- */
 const HEART_SVG = '<svg viewBox="0 0 30 28"><path d="M15 26C6 19 1.5 14 1.5 8.5 1.5 4.6 4.6 1.5 8.4 1.5c2.7 0 5 1.4 6.6 3.7 1.6-2.3 3.9-3.7 6.6-3.7 3.8 0 6.9 3.1 6.9 7 0 5.5-4.5 10.5-13.5 17.5z" fill="#ff4f6a" stroke="#24305e" stroke-width="2.6" stroke-linejoin="round"/></svg>';
+const BALLOON_SVG = '<svg viewBox="0 0 24 24"><path d="M12 17c-4 0-6.5-4-6.5-8a6.5 6.5 0 0 1 13 0c0 4-2.5 8-6.5 8z" fill="#ff6f91" stroke="#24305e" stroke-width="1.8"/><path d="M12 17v5" stroke="#24305e" stroke-width="1.5"/></svg>';
 const CRYSTAL_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2 18 9 16 22H8L6 9z" fill="#6fe3ff" stroke="#24305e" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 let hudKey = '';
 function syncHud(){
@@ -2654,7 +3156,7 @@ function syncHud(){
   if (key === hudKey) return; hudKey = key;
   let h = ''; for (let i = 0; i < MAX_HEARTS; i++) h += i < hearts ? HEART_SVG : HEART_SVG.replace('<svg', '<svg class="empty"');
   $('hearts').innerHTML = h; $('hearts').setAttribute('aria-label', `${hearts} von ${MAX_HEARTS} Leben`);
-  const icon = lvl.school ? CANDY_SVG : lvl.jedi ? CRYSTAL_SVG : STAR_SVG;
+  const icon = lvl.school ? CANDY_SVG : lvl.jedi ? CRYSTAL_SVG : lvl.party ? BALLOON_SVG : STAR_SVG;
   $('count').innerHTML = `${icon}<span>${got} / ${lvl.totalStars}</span>`;
 }
 
@@ -2675,7 +3177,7 @@ function frame(nowMs){
 
 function boot(data){
   if (data && KNIGHTS[data.knight]) knightId = data.knight;
-  if (data && ['space', 'knight', 'school', 'jedi'].includes(data.mode)) mode = data.mode;
+  if (data && ['space', 'knight', 'school', 'jedi', 'party'].includes(data.mode)) mode = data.mode;
   setMode(mode);
   showScreen('menu');
   requestAnimationFrame(frame);
