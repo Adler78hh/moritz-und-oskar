@@ -44,12 +44,19 @@ button{font-family:var(--font);color:var(--ink);cursor:pointer}
 button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 
 /* HUD buttons */
-.hudbtn{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));width:52px;height:52px;border-radius:50%;
+.hud{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px;z-index:2}
+#hudL{left:calc(12px + env(safe-area-inset-left,0px))}
+#hudR{right:calc(12px + env(safe-area-inset-right,0px))}
+.hudbtn{width:52px;height:52px;border-radius:50%;flex:none;
   border:4px solid var(--ink);background:var(--paper);box-shadow:0 5px 0 var(--ink);display:grid;place-items:center;padding:0}
+.hearts{display:flex;gap:4px;background:rgba(36,48,94,.55);border-radius:999px;padding:6px 10px}
+.hearts svg{width:30px;height:28px;display:block}
+.hearts .empty path{fill:rgba(255,255,255,.45)}
+.count{display:flex;align-items:center;gap:6px;background:rgba(36,48,94,.55);border-radius:999px;padding:4px 14px 4px 8px;
+  color:#fff;font-weight:800;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.count svg{width:30px;height:30px}
 .hudbtn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 .hudbtn svg{width:26px;height:26px}
-#btnHome{left:calc(12px + env(safe-area-inset-left,0px))}
-#btnSound{right:calc(12px + env(safe-area-inset-right,0px))}
 #btnSound.off .wave{display:none}
 #btnSound:not(.off) .cross{display:none}
 
@@ -153,12 +160,18 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
 
 <div id="stage"><canvas id="game" aria-label="Spielfeld"></canvas></div>
 
+<div class="hud" id="hudL">
 <button class="hudbtn" id="btnHome" aria-label="Zum Menü" hidden>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
 </button>
+<div class="hearts" id="hearts" role="img" aria-label="Leben" hidden></div>
+</div>
+<div class="hud" id="hudR">
+<div class="count" id="count" hidden></div>
 <button class="hudbtn" id="btnSound" aria-label="Ton an oder aus" hidden>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="cross" d="m16 9.5 5 5m0-5-5 5"/></svg>
 </button>
+</div>
 
 <button id="jump" aria-label="Springen, gedrückt halten für den Schild" hidden>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V5M5.5 11 12 4.5l6.5 6.5"/></svg>
@@ -204,7 +217,7 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
 <script>
 (() => {
 'use strict';
-const T = 48, H = 540, GY = 432;
+const T = 48, H = 540, GY = 432, MAX_HEARTS = 3;
 const SPEED = 215, GRAV = 2400, JV = 900, HOLD = 0.22;
 const FONT = '"Baloo 2","Trebuchet MS","Segoe UI",sans-serif';
 const $ = id => document.getElementById(id);
@@ -367,6 +380,7 @@ const SFX = {
   win:   () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0, 0.22, 'square', 0.06, i * 0.12)),
   over:  () => [392, 330, 262].forEach((f, i) => tone(f, 0, 0.3, 'triangle', 0.1, i * 0.22)),
   click: () => tone(660, 990, 0.07, 'sine', 0.07),
+  heal:  () => [660, 880, 1175].forEach((f, i) => tone(f, 0, 0.14, 'sine', 0.08, i * 0.08)),
   bubble:() => { tone(500, 900, 0.18, 'sine', 0.08); tone(1200, 1600, 0.12, 'sine', 0.04, 0.06); },
 };
 function sfx(n){ try { SFX[n](); } catch(e){} }
@@ -416,7 +430,18 @@ function buildLevel(i, m){
     }
     col += w;
   }
-  return { i, th, grid, cols: col, width: col * T, stars, sweets, enemies, signs, cps, goal, totalStars: stars.length + sweets.length, mode: school ? 'school' : jedi ? 'jedi' : 'knight', school, jedi };
+  // two healing hearts, at about one third and two thirds of the way, on safe flat ground
+  const heal = [];
+  const okCol = c => grid[9][c] === '#' && grid[9][c - 1] === '#' && grid[9][c + 1] === '#' && !grid[8][c] && !grid[8][c - 1] && !grid[8][c + 1]
+    && !enemies.some(e => Math.abs(e.x - (c * T + T / 2)) < 3 * T) && !signs.some(sg => Math.abs(sg.x - (c * T + T / 2)) < 3 * T);
+  for (const frac of [1 / 3, 2 / 3]){
+    const c0 = Math.round(col * frac);
+    for (let d = 0; d < 40; d++){
+      const c = okCol(c0 + d) ? c0 + d : okCol(c0 - d) ? c0 - d : -1;
+      if (c > 0){ heal.push({ x: c * T + T / 2, y: GY - 50, got:false }); break; }
+    }
+  }
+  return { i, th, grid, cols: col, width: col * T, stars, sweets, enemies, signs, cps, goal, heal, totalStars: stars.length + sweets.length, mode: school ? 'school' : jedi ? 'jedi' : 'knight', school, jedi };
 }
 let lvl = buildLevel(0);
 const LV = () => mode === 'space' ? SLEVELS : mode === 'school' ? KLEVELS : mode === 'jedi' ? JLEVELS : LEVELS;
@@ -432,7 +457,7 @@ function solidAt(c, r){ const t = tileAt(c, r); return t === '#' || t === 'B' ||
    ASTRONAUT MODE: float through space. Hold = rise, release = sink slowly,
    hold long = bubble shield that bounces shots back.
    ===================================================================== */
-const ASPEED = 190, A_UP = 1500, A_RISE = 330, A_FALLG = 520, A_SINK = 150, A_SHIELD = 0.45;
+const ASPEED = 160, A_UP = 1250, A_RISE = 270, A_FALLG = 420, A_SINK = 120, A_SHIELD = 0.45;
 const STHEMES = [
   { top:'#2b1c6b', mid:'#5a2ca0', bot:'#ff7ab6', neb:['#ff6fd8','#6fd6ff','#ffd36f'], planet:['#ffb86b','#7fe0c4','#ff8fb1'], rock:'#a397d4', rockDark:'#6f64a3', ships:['#ff6b7f','#6fd6ff','#ffd25e'] },
   { top:'#0f2a5e', mid:'#1f6aa5', bot:'#5fe0c8', neb:['#7cf0b0','#ff8fd0','#a58cff'], planet:['#ff7f6b','#ffd25e','#b59cff'], rock:'#9fb2d6', rockDark:'#62759c', ships:['#ffd25e','#ff8fd0','#ffffff'] },
@@ -445,9 +470,9 @@ const SCH = {
   sHigh:  {w:10, 1:'    **', 2:'   *  *', 3:'  *    *'},
   sLow:   {w:10, 7:'  *    *', 8:'   *  *', 9:'    **'},
   sWave:  {w:14, 3:'  *         *', 4:'   *       *', 5:'    *     *', 6:'     *   *', 7:'      * *'},
-  sWall:  {w:8, 0:'    A', 1:'    A', 2:'    A', 3:'    A', 5:'    *', 6:'    *', 8:'    A', 9:'    A', 10:'    A'},
-  sWallHi:{w:8, 0:'    A', 2:'    *', 3:'    *', 5:'    A', 6:'    A', 7:'    A', 8:'    A', 9:'    A', 10:'    A'},
-  sWallLo:{w:8, 0:'    A', 1:'    A', 2:'    A', 3:'    A', 4:'    A', 5:'    A', 7:'    *', 8:'    *', 10:'    A'},
+  sWall:  {w:8, 0:'    A', 1:'    A', 2:'    A', 5:'    *', 6:'    *', 9:'    A', 10:'    A'},
+  sWallHi:{w:8, 0:'    A', 2:'    *', 3:'    *', 7:'    A', 8:'    A', 9:'    A', 10:'    A'},
+  sWallLo:{w:8, 0:'    A', 1:'    A', 2:'    A', 3:'    A', 7:'    *', 8:'    *', 10:'    A'},
   sField: {w:14, 1:'           A', 2:'   A', 3:'       *', 5:'       A', 7:'       *', 8:'   A', 9:'           A'},
   sUfo:   {w:14, 2:'          u', 6:'  *  *  *'},
   sUfoLow:{w:14, 8:'          u', 3:'  *  *  *'},
@@ -483,7 +508,18 @@ function buildSpace(i){
     }
     col += ch.w;
   }
-  return { space:true, mode:'space', i, th, rocks, stars, enemies, goal, width:col * T, totalStars:stars.length, signs:[], cps:[] };
+  const heal = [];
+  for (const frac of [1 / 3, 2 / 3]){
+    const x0 = Math.round(col * frac) * T + T / 2;
+    let best = null;
+    for (let dx = 0; dx < 30 * T && !best; dx += T) for (const x of [x0 + dx, x0 - dx]) for (const y of [264, 216, 312, 168, 360, 120, 408]){
+      const free = !rocks.some(r => Math.hypot(r.x - x, r.y - y) < 90) && !enemies.some(e => Math.abs(e.x - x) < 4 * T);
+      if (free){ best = { x, y, got:false }; break; }
+      if (best) break;
+    }
+    if (best) heal.push(best);
+  }
+  return { space:true, mode:'space', i, th, rocks, stars, enemies, goal, heal, width:col * T, totalStars:stars.length, signs:[], cps:[] };
 }
 function newAstro(){ return { x:80, y:264, w:32, h:44, vx:0, vy:0, shield:false, inv:0, hidden:false, rot:0, phase:0, thrust:false, onGround:false }; }
 function astroBox(){ return { x:p.x + 4, y:p.y - p.h / 2 + 4, w:p.w - 8, h:p.h - 8 }; }
@@ -506,7 +542,7 @@ function updateAstro(dt){
     const pb = astroBox(), cx = p.x + p.w / 2;
     for (const r of lvl.rocks){
       if (Math.abs(r.x - cx) > 70) continue;
-      if (circBox({ x:r.x, y:r.y, r:r.r - 3 }, pb)){ hurt(); break; }
+      if (circBox({ x:r.x, y:r.y, r:r.r - 7 }, pb)){ hurt(); break; }
     }
   }
 }
@@ -523,12 +559,12 @@ function updateSpace(dt, active){
     if (Math.abs(e.x - cam - W / 2) > W * 1.2) continue;
     e.t += dt; e.mouth = Math.max(0, e.mouth - dt);
     if (e.type === 'u') e.y = e.by + Math.sin(e.t * 1.6) * 22;
-    else if (e.type === 'j') e.y = e.by + Math.sin(e.t * 1.3) * 95;
-    else if (e.type === 'c'){ e.spin += dt * 3; if (active && e.x - cam < W + 30){ e.x -= 170 * dt; if (Math.random() < 0.5) addPart({ kind:'ember', x:e.x + 14, y:e.y + (Math.random() - .5) * 16, vx:60, vy:0, life:0.4, max:0.4, g:0, size:5 + Math.random() * 4 }); } }
+    else if (e.type === 'j') e.y = e.by + Math.sin(e.t * 1.1) * 70;
+    else if (e.type === 'c'){ e.spin += dt * 3; if (active && e.x - cam < W + 30){ e.x -= 100 * dt; if (Math.random() < 0.5) addPart({ kind:'ember', x:e.x + 14, y:e.y + (Math.random() - .5) * 16, vx:60, vy:0, life:0.4, max:0.4, g:0, size:5 + Math.random() * 4 }); } }
     if (!active) continue;
     if (e.type === 'u'){
       const dx = e.x - (p.x + p.w / 2);
-      if (dx > 120 && dx < W * 0.75){ e.cd -= dt; if (e.cd <= 0){ spaceShoot(e); e.cd = 2.4; e.mouth = 0.3; } }
+      if (dx > 120 && dx < W * 0.75){ e.cd -= dt; if (e.cd <= 0){ spaceShoot(e); e.cd = 3.2; e.mouth = 0.3; } }
     }
     if (overlap(sbox(e), astroBox())){
       if (e.type === 'c' && p.shield){ knockAway(e, 320, -220); sfx('clang'); }
@@ -539,7 +575,7 @@ function updateSpace(dt, active){
 function spaceShoot(e){
   sfx('shoot');
   const mx = e.x - 20, my = e.y + 8, dx = p.x + p.w / 2 - mx, dy = p.y - my, len = Math.hypot(dx, dy) || 1;
-  let vx = dx / len * 210, vy = dy / len * 210; if (vx > -110) vx = -110;
+  let vx = dx / len * 165, vy = dy / len * 165; if (vx > -90) vx = -90;
   projs.push({ x:mx, y:my, vx, vy, r:9, type:'goo', refl:false, life:6, owner:e });
 }
 function updateSpaceProjs(dt){
@@ -795,6 +831,7 @@ function renderSpace(){
     g.fillStyle = 'rgba(255,230,120,.28)'; circ(g, x, sy, 24 + Math.sin(t * 4 + s.x) * 2); g.fill();
     cuteStar(g, x, sy, 17, Math.sin(t * 2 + s.x) * 0.2, '#ffd93d');
   }
+  drawHealHearts();
   drawSpaceEnemies();
   for (const q of projs){
     const x = q.x - cam;
@@ -1478,7 +1515,7 @@ function hurt(){
   hearts--; sfx('hurt');
   puff(p.x + p.w / 2, p.y - 30, 6);
   if (hearts <= 0){ state = 'dying'; p.vy = lvl.space ? -250 : -650; p.shield = false; p.suck = false; endT = 1.4; sfx('over'); return; }
-  if (lvl.space){ p.inv = 1.8; p.vy = Math.min(p.vy, -60); return; }
+  if (lvl.space){ p.inv = 2.5; p.vy = Math.min(p.vy, -60); return; }
   p.inv = 1.6; p.vy = -330; p.onGround = false;
 }
 function fellDown(){
@@ -1632,6 +1669,27 @@ function updateProjs(dt){
   projs = projs.filter(q => !q.dead);
 }
 
+function collectHearts(){
+  const cx = p.x + p.w / 2, cy = lvl.space ? p.y : p.y - p.h / 2;
+  for (const hh of lvl.heal || []){
+    if (hh.got) continue;
+    const dx = hh.x - cx, dy = hh.y - cy;
+    if (dx * dx + dy * dy < 40 * 40){
+      hh.got = true; if (hearts < MAX_HEARTS) hearts++;
+      sfx('heal'); sparkle(hh.x, hh.y, '#ff6f91', 14); sparkle(hh.x, hh.y, '#ffffff', 8);
+    }
+  }
+}
+function drawHealHearts(){
+  for (const hh of lvl.heal || []){
+    if (hh.got) continue;
+    const x = hh.x - cam; if (x < -40 || x > W + 40) continue;
+    const y = hh.y + Math.sin(t * 3 + hh.x) * 5, pul = 1 + Math.sin(t * 6) * 0.08;
+    g.fillStyle = 'rgba(255,111,145,.3)'; circ(g, x, y, 26 * pul); g.fill();
+    g.save(); g.translate(x, y); g.scale(pul, pul); heart(0, 2, 15, true); g.restore();
+    g.fillStyle = '#ffffff'; starPath(g, x + 14, y - 14, 5, 2); g.fill();
+  }
+}
 function collectStars(){
   const cx = p.x + p.w / 2, cy = lvl.space ? p.y : p.y - p.h / 2;
   for (const s of lvl.stars){
@@ -1672,8 +1730,8 @@ function step(dt){
     if (readyT <= 0) state = 'play';
   } else if (state === 'play'){
     playT += dt;
-    if (lvl.space){ updateAstro(dt); updateSpace(dt, true); updateSpaceProjs(dt); collectStars(); checkSpaceGoal(); }
-    else { updatePlayer(dt); updateEnemies(dt, true); updateProjs(dt); collectStars(); if (lvl.school) suckSweets(dt); checkGoal(); }
+    if (lvl.space){ updateAstro(dt); updateSpace(dt, true); updateSpaceProjs(dt); collectStars(); collectHearts(); checkSpaceGoal(); }
+    else { updatePlayer(dt); updateEnemies(dt, true); updateProjs(dt); collectStars(); collectHearts(); if (lvl.school) suckSweets(dt); checkGoal(); }
   } else if (state === 'dying'){
     p.vy += (lvl.space ? 700 : GRAV) * dt; p.y += p.vy * dt; p.rot += dt * 7; if (lvl.space) updateSpace(dt, false);
     endT -= dt; if (endT <= 0){ state = 'over'; showOver(); }
@@ -2382,11 +2440,6 @@ function outlinedText(txt, x, y, size, fill, align){
   g.fillStyle = fill; g.fillText(txt, x, y);
 }
 function drawHUD(){
-  for (let i = 0; i < 3; i++) heart(96 + i * 40, 36, 14, i < hearts);
-  if (lvl.school) drawSweet(g, W - 182, 37, 0, '#ff5d8f', 0);
-  else if (lvl.jedi) drawCrystal(g, W - 182, 38, 1, '#6fe3ff');
-  else { g.save(); g.fillStyle = '#ffd93d'; g.strokeStyle = '#24305e'; g.lineWidth = 3; starPath(g, W - 180, 36, 16, 7.5); g.fill(); g.stroke(); g.restore(); }
-  outlinedText(`${got} / ${lvl.totalStars}`, W - 156, 38, 26, '#ffffff', 'left');
   if (state === 'ready'){
     const a = Math.min(1, (1.7 - readyT) * 4);
     g.globalAlpha = a;
@@ -2414,17 +2467,17 @@ function render(){
     drawSky(th); drawTown(th); drawNear(th); drawWater(th);
     drawTiles(th); drawSigns();
     if (lvl.goal) drawSchool(lvl.goal.x, lvl.goal.y);
-    drawSweets(); drawEnemies();
+    drawSweets(); drawHealHearts(); drawEnemies();
   } else if (lvl.jedi){
     drawPlanet(th); drawWater(th);
     drawTiles(th); drawSigns();
     if (lvl.goal) drawJediShip(lvl.goal.x, lvl.goal.y);
-    drawCrystals(); drawEnemies(); drawProjs();
+    drawCrystals(); drawHealHearts(); drawEnemies(); drawProjs();
   } else {
     drawSky(th); drawFar(th); drawBgDragons(th); drawNear(th); drawWater(th);
     drawTiles(th); drawSigns();
     if (lvl.goal) drawCastle(lvl.goal.x, lvl.goal.y, th);
-    drawStars(); drawEnemies(); drawProjs();
+    drawStars(); drawHealHearts(); drawEnemies(); drawProjs();
   }
   const inGame = state !== 'menu' && state !== 'levels';
   if (p && inGame) drawPlayer();
@@ -2491,7 +2544,8 @@ const SCREENS = ['menu', 'levels', 'msg'];
 function showScreen(id){
   for (const s of SCREENS) $(s).hidden = s !== id;
   const inGame = id === null;
-  $('btnHome').hidden = !inGame; $('btnSound').hidden = false; $('jump').hidden = !inGame;
+  $('btnHome').hidden = !inGame; $('hearts').hidden = !inGame; $('count').hidden = !inGame; $('btnSound').hidden = false; $('jump').hidden = !inGame;
+  hudKey = '';
   document.body.style.setProperty('--k', KNIGHTS[knightId].color);
 }
 const HOWTO = {
@@ -2590,6 +2644,20 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { if (KEYS.includes(e.code)) { e.preventDefault(); release(); } });
 addEventListener('blur', () => { pointers.clear(); input.down = false; });
 
+/* ---------- HUD (HTML, so it never hides behind the buttons) ---------- */
+const HEART_SVG = '<svg viewBox="0 0 30 28"><path d="M15 26C6 19 1.5 14 1.5 8.5 1.5 4.6 4.6 1.5 8.4 1.5c2.7 0 5 1.4 6.6 3.7 1.6-2.3 3.9-3.7 6.6-3.7 3.8 0 6.9 3.1 6.9 7 0 5.5-4.5 10.5-13.5 17.5z" fill="#ff4f6a" stroke="#24305e" stroke-width="2.6" stroke-linejoin="round"/></svg>';
+const CRYSTAL_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2 18 9 16 22H8L6 9z" fill="#6fe3ff" stroke="#24305e" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+let hudKey = '';
+function syncHud(){
+  if (!lvl || state === 'menu' || state === 'levels') return;
+  const key = hearts + '|' + got + '|' + lvl.totalStars + '|' + lvl.mode;
+  if (key === hudKey) return; hudKey = key;
+  let h = ''; for (let i = 0; i < MAX_HEARTS; i++) h += i < hearts ? HEART_SVG : HEART_SVG.replace('<svg', '<svg class="empty"');
+  $('hearts').innerHTML = h; $('hearts').setAttribute('aria-label', `${hearts} von ${MAX_HEARTS} Leben`);
+  const icon = lvl.school ? CANDY_SVG : lvl.jedi ? CRYSTAL_SVG : STAR_SVG;
+  $('count').innerHTML = `${icon}<span>${got} / ${lvl.totalStars}</span>`;
+}
+
 /* ---------- loop ---------- */
 let last = performance.now(), acc = 0;
 const jumpBtn = $('jump');
@@ -2598,6 +2666,7 @@ function frame(nowMs){
   acc += d; const STEP = 1 / 120;
   while (acc >= STEP){ step(STEP); acc -= STEP; }
   render();
+  syncHud();
   if (state === 'menu') drawPreviews();
   jumpBtn.classList.toggle('down', input.down);
   jumpBtn.classList.toggle('shielding', !!(p && p.shield));
