@@ -229,8 +229,10 @@ const CHARS = [
     hair:{ style:'spiky', curl:true, c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
   { id:'oskar', name:'Os', letter:'Os', word:'rot', sex:'m', color:'#e8443a', dark:'#a92a2a', light:'#ff9d8f',
     hair:{ style:'spiky', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
-  { id:'ida', name:'Id', letter:'Id', word:'altrosa', sex:'f', color:'#cf8c98', dark:'#7f8492', light:'#f0cdd3',
-    hair:{ style:'braid', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
+  { id:'ida', name:'Id', letter:'Id', word:'taubenblau', sex:'f', color:'#7f97ba', dark:'#556a8c', light:'#cdd9ea',
+    hair:{ style:'braid', c:'#ffd447', d:'#e0a92a', l:'#fff1a6', tie:'#556a8c' }, face:'round' },
+  { id:'lu', name:'Lu', letter:'Lu', word:'türkisfarben', sex:'m', color:'#25c2b3', dark:'#168478', light:'#a8eee6',
+    hair:{ style:'wavy', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
   { id:'kilian', name:'Ki', letter:'Ki', word:'bordeauxrot', sex:'m', color:'#8e1f3a', dark:'#5e1226', light:'#d77a91',
     hair:{ style:'wavy', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'long' },
   { id:'finnc', name:'Finn', letter:'Finn', word:'gelb', sex:'m', color:'#f2c230', dark:'#c4931a', light:'#ffe58a', ink:'#7a4a00',
@@ -2318,7 +2320,7 @@ function hairBack(c, h, face){
   } else if (h.style === 'braid'){ // farmer's braid: woven along the head, then hanging down the back
     const links = [[-12, -46], [-14, -39], [-15, -32], [-15, -25], [-14, -18]];
     for (const [x, y] of links){ c.beginPath(); c.ellipse(x, y, 5.2, 4.4, -0.25, 0, Math.PI * 2); c.fill(); c.stroke(); }
-    c.fillStyle = '#cf8c98'; c.beginPath(); c.ellipse(-14, -13.5, 4.6, 2.4, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = h.tie || '#cf8c98'; c.beginPath(); c.ellipse(-14, -13.5, 4.6, 2.4, 0, 0, Math.PI * 2); c.fill();
     c.fillStyle = h.c; c.beginPath(); c.moveTo(-17, -12); c.quadraticCurveTo(-14, -2, -10, -6); c.quadraticCurveTo(-13, -9, -11, -12); c.closePath(); c.fill(); c.stroke();
   } else if (h.style === 'longwavy'){
     c.beginPath(); c.moveTo(-12, -62);
