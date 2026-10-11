@@ -155,8 +155,6 @@ h2{margin:0;font-weight:800;font-size:clamp(26px,4.6vw,38px);line-height:1.05;te
 }
 @media (prefers-reduced-motion:reduce){ .card,.lv{transition:none} }
 </style>
-</head>
-<body>
 
 <div id="stage"><canvas id="game" aria-label="Spielfeld"></canvas></div>
 
@@ -229,10 +227,6 @@ const CHARS = [
     hair:{ style:'spiky', curl:true, c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
   { id:'oskar', name:'Os', letter:'Os', word:'rot', sex:'m', color:'#e8443a', dark:'#a92a2a', light:'#ff9d8f',
     hair:{ style:'spiky', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
-  { id:'ida', name:'Id', letter:'Id', word:'taubenblau', sex:'f', color:'#7f97ba', dark:'#556a8c', light:'#cdd9ea',
-    hair:{ style:'braid', c:'#ffd447', d:'#e0a92a', l:'#fff1a6', tie:'#556a8c' }, face:'round' },
-  { id:'lu', name:'Lu', letter:'Lu', word:'türkisfarben', sex:'m', color:'#25c2b3', dark:'#168478', light:'#a8eee6',
-    hair:{ style:'kevin', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
   { id:'kilian', name:'Ki', letter:'Ki', word:'bordeauxrot', sex:'m', color:'#8e1f3a', dark:'#5e1226', light:'#d77a91',
     hair:{ style:'wavy', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'long' },
   { id:'finnc', name:'Finn', letter:'Finn', word:'gelb', sex:'m', color:'#f2c230', dark:'#c4931a', light:'#ffe58a', ink:'#7a4a00',
@@ -247,6 +241,10 @@ const CHARS = [
     hair:{ style:'long', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round', glasses:true },
   { id:'freya', name:'Fre', letter:'Fre', word:'lila', sex:'f', color:'#8b5cd6', dark:'#5f3aa0', light:'#cbb2f5',
     hair:{ style:'longwavy', c:'#5a3a28', d:'#3a2418', l:'#8a5f45' }, face:'round' },
+  { id:'ida', name:'Id', letter:'Id', word:'taubenblau', sex:'f', color:'#6c9be0', dark:'#3f6db3', light:'#c4d8f7',
+    hair:{ style:'braid', c:'#ffd447', d:'#e0a92a', l:'#fff1a6', tie:'#3f6db3' }, face:'round' },
+  { id:'lu', name:'Lu', letter:'Lu', word:'türkisfarben', sex:'m', color:'#25c2b3', dark:'#168478', light:'#a8eee6',
+    hair:{ style:'kevin', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
 ];
 const KNIGHTS = Object.fromEntries(CHARS.map(k => [k.id, k]));
 // grammar helpers for the role names
@@ -447,6 +445,18 @@ function buildLevel(i, m){
     for (let d = 0; d < 40; d++){
       const c = okCol(c0 + d) ? c0 + d : okCol(c0 - d) ? c0 - d : -1;
       if (c > 0){ heal.push({ x: c * T + T / 2, y: GY - 50, got:false }); break; }
+    }
+  }
+  // jedi: high-flying crystals, only reachable with the triple-tap Jedi double jump
+  if (jedi){
+    const free = c => grid[9][c] === '#' && [4, 5, 6, 7, 8].every(r => !grid[r][c]);
+    const n = 6;
+    for (let k = 0; k < n; k++){
+      const c0 = Math.round(50 + (col - 60) * (k + 0.3) / n);
+      for (let d = 0; d < 30; d++){
+        const c = [c0 + d, c0 - d].find(c => c > 48 && c < col - 6 && [-3, -2, -1, 0, 1, 2, 3].every(o => free(c + o)));
+        if (c){ stars.push({ x: c * T + T / 2, y: 96, got:false, high:true }); break; }
+      }
     }
   }
   return { i, th, grid, cols: col, width: col * T, stars, sweets, enemies, signs, cps, goal, heal, totalStars: stars.length + sweets.length, mode: school ? 'school' : jedi ? 'jedi' : 'knight', school, jedi };
@@ -1307,7 +1317,15 @@ function drawCrystals(){
   for (const s of lvl.stars){
     if (s.got) continue;
     const x = s.x - cam; if (x < -40 || x > W + 40) continue;
-    const y = s.y + Math.sin(t * 3 + s.x * 0.05) * 4, col = CRYSTAL_COLS[Math.floor(s.x / T) % CRYSTAL_COLS.length];
+    const y = s.y + Math.sin(t * 3 + s.x * 0.05) * (s.high ? 9 : 4), col = CRYSTAL_COLS[Math.floor(s.x / T) % CRYSTAL_COLS.length];
+    if (s.high){
+      // a big floating crystal with a rainbow halo and tiny orbiting sparkles
+      for (let k = 0; k < 3; k++){ g.globalAlpha = 0.22; g.fillStyle = CRYSTAL_COLS[(k + Math.floor(t * 3)) % CRYSTAL_COLS.length]; circ(g, x, y, 34 - k * 8 + Math.sin(t * 5 + k) * 3); g.fill(); }
+      g.globalAlpha = 1; g.fillStyle = '#ffffff';
+      for (let k = 0; k < 4; k++){ const a = t * 2.5 + k * Math.PI / 2; starPath(g, x + Math.cos(a) * 30, y + Math.sin(a) * 18, 5, 2); g.fill(); }
+      g.save(); g.translate(x, y); g.scale(1.5, 1.5); drawCrystal(g, 0, 0, 0.55 + Math.abs(Math.cos(t * 2.4 + s.x * 0.03)) * 0.45, CRYSTAL_COLS[Math.floor(t * 2) % CRYSTAL_COLS.length]); g.restore();
+      continue;
+    }
     g.globalAlpha = 0.35; g.fillStyle = col; circ(g, x, y, 20 + Math.sin(t * 4 + s.x) * 2); g.fill(); g.globalAlpha = 1;
     drawCrystal(g, x, y, 0.55 + Math.abs(Math.cos(t * 2.4 + s.x * 0.03)) * 0.45, col);
   }
@@ -2052,7 +2070,17 @@ function fellDown(){
 function press(){ if (input.down) return; input.down = true; input.t0 = now(); audio(); if (lvl.space && p && state === 'play') p.vy = Math.min(p.vy, -140); }
 function release(){
   if (!input.down) return; input.down = false;
-  if (!lvl.space && now() - input.t0 < HOLD && (state === 'play' || state === 'ready') && p) p.jumpBuf = 0.16;
+  if (!lvl.space && now() - input.t0 < HOLD && (state === 'play' || state === 'ready') && p){
+    p.jumpBuf = 0.16;
+    if (lvl.jedi){
+      // three quick taps = Jedi double jump with a roll
+      const tn = now(); p.taps = (p.taps || []).filter(x => tn - x < 0.9); p.taps.push(tn);
+      if (p.taps.length >= 3 && !p.onGround && !p.dbl && p.freeze <= 0){
+        p.vy = -JV; p.dbl = true; p.flip = 0.55; p.jumpBuf = 0; p.taps = [];
+        sfx('jump'); sparkle(p.x + p.w / 2, p.y - 10, '#7fe0ff', 14);
+      }
+    }
+  }
 }
 
 /* ---------- update ---------- */
@@ -2100,7 +2128,8 @@ function updatePlayer(dt){
     const r = Math.floor((p.y - p.h) / T);
     for (let c = c0; c <= c1; c++) if (solidAt(c, r)){ p.y = (r + 1) * T + p.h; p.vy = 0; break; }
   }
-  if (p.onGround){ p.coyote = 0.1; if (!was) dust(p.x + p.w / 2, p.y); }
+  if (p.onGround){ p.coyote = 0.1; p.dbl = false; if (!was) dust(p.x + p.w / 2, p.y); }
+  if (p.flip > 0){ p.flip -= dt; if (Math.random() < 0.5) sparkle(p.x + p.w / 2, p.y - 30, '#7fe0ff', 1); }
   if (p.onGround && p.vx > 0 && !p.blocked) p.phase += dt * 13;
   for (const c of lvl.cps) if (c.x <= p.x && c.x > cp.x) cp = c;
   if (p.y > H + 70) fellDown();
@@ -2977,6 +3006,7 @@ function drawPlayer(){
     g.restore();
   }
   if (lvl.party){ drawPartyKid(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', stand:p.stand, t, sad: state === 'dying', giftOy: p.gift ? p.gift.oy : 0, noGift: state === 'win' || state === 'won' }); g.restore(); return; }
+  if (lvl.jedi && p.flip > 0 && state !== 'dying'){ g.translate(0, -30); g.rotate((1 - p.flip / 0.55) * Math.PI * 2); g.translate(0, 30); }
   if (lvl.jedi){ drawJedi(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', shield:p.shield, t, sad: state === 'dying' }); g.restore(); return; }
   if (lvl.school){ drawKid(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', suck:p.suck, t, sad: state === 'dying' }); g.restore(); return; }
   drawKnight(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', shield:p.shield, t, sad: state === 'dying' });
@@ -3006,7 +3036,7 @@ function drawHUD(){
     g.globalAlpha = 1;
   }
   if (lvlIndex === 0 && (state === 'play' || state === 'ready') && playT < 8){
-    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Kurz tippen = hüpfen  ·  Lang drücken = Tüte saugt (dann kein Hüpfen!)' : lvl.jedi ? 'Kurz tippen = springen  ·  Lang drücken = Laserschwert-Schild' : lvl.party ? 'Kurz tippen = springen  ·  Lang drücken = Geschenk hochwerfen' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
+    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Kurz tippen = hüpfen  ·  Lang drücken = Tüte saugt (dann kein Hüpfen!)' : lvl.jedi ? 'Tippen = springen  ·  3× schnell tippen = Jedi-Doppelsprung  ·  Lang drücken = Schild' : lvl.party ? 'Kurz tippen = springen  ·  Lang drücken = Geschenk hochwerfen' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
     g.font = `700 19px ${FONT}`; const tw = g.measureText(msg).width;
     g.globalAlpha = Math.min(1, (8 - playT) / 1);
     g.fillStyle = 'rgba(36,48,94,.82)'; rr(g, W / 2 - tw / 2 - 18, 74, tw + 36, 38, 19); g.fill();
@@ -3115,7 +3145,7 @@ function showScreen(id){
 const HOWTO = {
   knight: 'Dein Ritter läuft von allein. <b>Kurz tippen</b>: springen. <b>Lang drücken</b>: stehen bleiben und den Schild hochhalten. Der Schild hält Feuerbälle und Eicheln ab.',
   school: 'Dein Schulkind läuft von allein. <b>Kurz tippen</b>: hüpfen. <b>Lang drücken</b>: die Schultüte saugt Süßigkeiten ein. Aber Vorsicht: Beim Saugen kann es nicht hüpfen und fällt leicht in ein Loch!',
-  jedi: 'Dein junger Jedi läuft von allein. <b>Kurz tippen</b>: springen. <b>Lang drücken</b>: stehen bleiben und das Laserschwert zum Schutzschild wirbeln. Es wirft Laserschüsse zurück.',
+  jedi: 'Dein junger Jedi läuft von allein. <b>Kurz tippen</b>: springen. <b>3× schnell tippen</b>: Jedi-Doppelsprung mit Rolle – so erreichst du die hoch schwebenden Kristalle! <b>Lang drücken</b>: stehen bleiben und das Laserschwert zum Schutzschild wirbeln. Es wirft Laserschüsse zurück.',
   party: 'Dein Geburtstagskind läuft von allein und dreht an den Gummibärchen-Wänden um. <b>Kurz tippen</b>: springen, auch durch die Waffelböden nach oben. <b>Lang drücken</b>: das Geschenk hochwerfen und die Riesen-Süßigkeit im Schokoboden umkippen. Bring das Geschenk ganz nach oben zum Geburtstagstisch!',
   space: 'Dein Astronaut fliegt von allein. <b>Drücken</b>: nach oben schweben. <b>Loslassen</b>: langsam sinken. <b>Lang halten</b>: Schutzschild an. Er wirft Schüsse zurück und schubst Kometen weg.',
 };
