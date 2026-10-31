@@ -459,7 +459,7 @@ function buildLevel(i, m){
       }
     }
   }
-  return { i, th, grid, cols: col, width: col * T, stars, sweets, enemies, signs, cps, goal, heal, totalStars: stars.length + sweets.length, mode: school ? 'school' : jedi ? 'jedi' : 'knight', school, jedi };
+  return { i, th, grid, cols: col, width: col * T, stars, sweets, enemies, signs, cps, goal, heal, waves:[], pops:[], totalStars: stars.length + sweets.length, mode: school ? 'school' : jedi ? 'jedi' : 'knight', school, jedi };
 }
 let lvl = buildLevel(0);
 const LV = () => mode === 'space' ? SLEVELS : mode === 'school' ? KLEVELS : mode === 'jedi' ? JLEVELS : mode === 'party' ? PLEVELS : LEVELS;
@@ -2036,6 +2036,7 @@ let state = 'menu', lvlIndex = 0, cam = 0, t = 0, readyT = 0, endT = 0, hearts =
 let p = null, projs = [], parts = [], cp = null;
 const input = { down:false, t0:0 };
 const now = () => performance.now() / 1000;
+const ROLL_T = 0.55, WAVE_R = 150;
 
 function newPlayer(x, y){ return { x, y, w:28, h:60, vx:0, vy:0, prevY:y, onGround:true, coyote:0, jumpBuf:0, shield:false, inv:0, phase:0, blocked:false, hidden:false, rot:0, freeze:0 }; }
 
@@ -2053,7 +2054,7 @@ function startLevel(i){
 }
 
 function hurt(){
-  if (p.inv > 0 || state !== 'play') return;
+  if (p.inv > 0 || state !== 'play' || (lvl.jedi && p.flip > 0)) return;
   hearts--; sfx('hurt');
   puff(p.x + p.w / 2, p.y - 30, 6);
   if (hearts <= 0){ state = 'dying'; p.vy = lvl.space ? -250 : -650; p.shield = false; p.suck = false; endT = 1.4; sfx('over'); return; }
@@ -2063,7 +2064,7 @@ function hurt(){
 function fellDown(){
   hearts--; sfx('fall');
   if (hearts <= 0){ state = 'dying'; p.hidden = true; endT = 0.9; setTimeout(() => sfx('over'), 300); return; }
-  p.x = cp.x; p.y = cp.y; p.vy = 0; p.inv = 2; p.freeze = 0.8; p.shield = false; projs = [];
+  p.x = cp.x; p.y = cp.y; p.vy = 0; p.inv = 2; p.freeze = 0.8; p.shield = false; projs = []; p.flip = 0; p.rolled = false;
   sparkle(p.x + p.w / 2, p.y - 30, '#ffffff', 14);
 }
 
@@ -2073,13 +2074,58 @@ function release(){
   if (!lvl.space && now() - input.t0 < HOLD && (state === 'play' || state === 'ready') && p){
     p.jumpBuf = 0.16;
     if (lvl.jedi){
-      // three quick taps = Jedi double jump with a roll
-      const tn = now(); p.taps = (p.taps || []).filter(x => tn - x < 0.9); p.taps.push(tn);
-      if (p.taps.length >= 3 && !p.onGround && !p.dbl && p.freeze <= 0){
-        p.vy = -JV; p.dbl = true; p.flip = 0.55; p.jumpBuf = 0; p.taps = [];
-        sfx('jump'); sparkle(p.x + p.w / 2, p.y - 10, '#7fe0ff', 14);
-      }
+      // two quick taps = Jedi roll: second jump in the air, curled into a ball
+      const tn = now(); p.taps = (p.taps || []).filter(x => tn - x < 0.5); p.taps.push(tn);
+      if (p.taps.length >= 2 && !p.onGround && !p.dbl && p.freeze <= 0) jediRoll(tn);
     }
+  }
+}
+
+function jediRoll(tn){
+  p.vy = -JV; p.dbl = true; p.flip = ROLL_T; p.rolled = true; p.jumpBuf = 0; p.taps = [];
+  sfx('jump'); sparkle(p.x + p.w / 2, p.y - 10, '#7fe0ff', 14);
+  // roll chain: jumped again within a second after landing from a roll
+  p.chain = (p.jumpAt !== undefined && p.rollLand !== undefined && p.jumpAt - p.rollLand < 1.0 && p.jumpAt >= p.rollLand) ? (p.chain || 1) + 1 : 1;
+  if (p.chain >= 2){
+    got++; sfx('star');
+    lvl.pops.push({ x: p.x + p.w / 2, y: p.y - p.h - 24, txt: `Kette ×${p.chain}`, life: 1.3 });
+    sparkle(p.x + p.w / 2, p.y - p.h - 20, '#ffd93d', 12);
+  }
+}
+function forceWave(){
+  // landing after a roll: a blue ring pulls nearby (not the high-flying) crystals in
+  const cx = p.x + p.w / 2;
+  lvl.waves.push({ x: cx, y: p.y, r: 10, life: 0.5 });
+  sfx('shield');
+  for (const s of lvl.stars) if (!s.got && !s.high && Math.abs(s.x - cx) < WAVE_R && s.y > p.y - 200) s.fly = true;
+}
+function updateJediFx(dt){
+  const cx = p.x + p.w / 2, cy = p.y - p.h / 2;
+  for (const s of lvl.stars){
+    if (!s.fly || s.got) continue;
+    const dx = cx - s.x, dy = cy - s.y, d = Math.hypot(dx, dy) || 1, v = Math.min(d, 700 * dt);
+    s.x += dx / d * v; s.y += dy / d * v;
+  }
+  for (const w of lvl.waves){ w.life -= dt; w.r += 420 * dt; }
+  lvl.waves = lvl.waves.filter(w => w.life > 0);
+  for (const q of lvl.pops){ q.life -= dt; q.y -= 40 * dt; }
+  lvl.pops = lvl.pops.filter(q => q.life > 0);
+}
+function drawJediFx(){
+  for (const w of lvl.waves){
+    const a = Math.max(0, w.life / 0.5);
+    g.globalAlpha = a * 0.8; g.strokeStyle = '#7fe0ff'; g.lineWidth = 6;
+    g.beginPath(); g.ellipse(w.x - cam, w.y - 4, w.r, w.r * 0.28, 0, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = a * 0.5; g.strokeStyle = '#ffffff'; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(w.x - cam, w.y - 4, w.r * 0.8, w.r * 0.22, 0, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = 1;
+  }
+  for (const q of lvl.pops){
+    g.globalAlpha = Math.min(1, q.life / 0.4);
+    outlinedText(q.txt, q.x - cam - 12, q.y, 26, '#ffd93d');
+    drawCrystal(g, q.x - cam + 52, q.y - 2, 0.8, '#6fe3ff');
+    outlinedText('+1', q.x - cam + 78, q.y, 20, '#ffffff');
+    g.globalAlpha = 1;
   }
 }
 
@@ -2097,7 +2143,7 @@ function updatePlayer(dt){
   if (p.freeze > 0){ p.freeze -= dt; p.jumpBuf = 0; }
   p.vx = (p.shield || p.freeze > 0) ? 0 : SPEED;
   if (p.jumpBuf > 0 && (p.onGround || p.coyote > 0)){
-    p.vy = -JV; p.onGround = false; p.coyote = 0; p.jumpBuf = 0; sfx('jump'); dust(p.x + p.w / 2, p.y);
+    p.vy = -JV; p.onGround = false; p.coyote = 0; p.jumpBuf = 0; sfx('jump'); dust(p.x + p.w / 2, p.y); p.jumpAt = now();
   }
   p.jumpBuf -= dt; p.coyote -= dt; if (p.inv > 0) p.inv -= dt;
   const was = p.onGround;
@@ -2129,6 +2175,7 @@ function updatePlayer(dt){
     for (let c = c0; c <= c1; c++) if (solidAt(c, r)){ p.y = (r + 1) * T + p.h; p.vy = 0; break; }
   }
   if (p.onGround){ p.coyote = 0.1; p.dbl = false; if (!was) dust(p.x + p.w / 2, p.y); }
+  if (p.onGround && !was && p.rolled){ p.rolled = false; p.rollLand = now(); if (lvl.jedi) forceWave(); }
   if (p.flip > 0){ p.flip -= dt; if (Math.random() < 0.5) sparkle(p.x + p.w / 2, p.y - 30, '#7fe0ff', 1); }
   if (p.onGround && p.vx > 0 && !p.blocked) p.phase += dt * 13;
   for (const c of lvl.cps) if (c.x <= p.x && c.x > cp.x) cp = c;
@@ -2174,7 +2221,8 @@ function updateEnemies(dt, active){
     }
     const b = ebox(e), pb = { x:p.x + 3, y:p.y - p.h + 6, w:p.w - 6, h:p.h - 6 };
     if (overlap(b, pb)){
-      if (p.vy > 60 && p.prevY <= b.y + 16){ killEnemy(e); p.vy = -560; p.onGround = false; sfx('stomp'); }
+      if (lvl.jedi && p.flip > 0){ if (e.type === 'k') tipOver(e); else killEnemy(e); sfx('stomp'); sparkle(e.x, e.y - 30, '#7fe0ff', 10); }
+      else if (p.vy > 60 && p.prevY <= b.y + 16){ killEnemy(e); p.vy = -560; p.onGround = false; sfx('stomp'); }
       else if (p.shield && e.x > p.x + p.w / 2){ if (e.type === 's'){ e.dir = 1; e.x += 4; } }
       else hurt();
     }
@@ -2211,7 +2259,7 @@ function updateProjs(dt){
         }
       }
       const pb = { x:p.x + 4, y:p.y - p.h + 6, w:p.w - 8, h:p.h - 6 };
-      if (p.inv <= 0 && circBox(q, pb)){ q.dead = true; puff(q.x, q.y, 4); hurt(); }
+      if (p.inv <= 0 && circBox(q, pb)){ q.dead = true; puff(q.x, q.y, 4); if (lvl.jedi && p.flip > 0) sparkle(q.x, q.y, '#7fe0ff', 6); else hurt(); }
     } else {
       for (const e of lvl.enemies){
         if (e.alive && circBox(q, ebox(e))){ if (e.type === 'k') tipOver(e); else killEnemy(e); q.dead = true; sfx('stomp'); break; }
@@ -2286,7 +2334,7 @@ function step(dt){
     playT += dt;
     if (lvl.party){ updatePartyPlayer(dt); updateParty(dt, true); collectStars(); collectHearts(); checkPartyGoal(); partyCamera(dt, false); }
     else if (lvl.space){ updateAstro(dt); updateSpace(dt, true); updateSpaceProjs(dt); collectStars(); collectHearts(); checkSpaceGoal(); }
-    else { updatePlayer(dt); updateEnemies(dt, true); updateProjs(dt); collectStars(); collectHearts(); if (lvl.school) suckSweets(dt); checkGoal(); }
+    else { updatePlayer(dt); updateEnemies(dt, true); updateProjs(dt); if (lvl.jedi) updateJediFx(dt); collectStars(); collectHearts(); if (lvl.school) suckSweets(dt); checkGoal(); }
   } else if (state === 'dying'){
     p.vy += (lvl.space ? 700 : GRAV) * dt; p.y += p.vy * dt; p.rot += dt * 7; if (lvl.space) updateSpace(dt, false); if (lvl.party) updateParty(dt, false);
     endT -= dt; if (endT <= 0){ state = 'over'; showOver(); }
@@ -3006,7 +3054,14 @@ function drawPlayer(){
     g.restore();
   }
   if (lvl.party){ drawPartyKid(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', stand:p.stand, t, sad: state === 'dying', giftOy: p.gift ? p.gift.oy : 0, noGift: state === 'win' || state === 'won' }); g.restore(); return; }
-  if (lvl.jedi && p.flip > 0 && state !== 'dying'){ g.translate(0, -30); g.rotate((1 - p.flip / 0.55) * Math.PI * 2); g.translate(0, 30); }
+  if (lvl.jedi && p.flip > 0 && state !== 'dying'){
+    // curled up: a glowing ball with the figure tucked inside, spinning once
+    const k = 1 - p.flip / ROLL_T;
+    g.translate(0, -30);
+    g.globalAlpha = 0.35; g.fillStyle = '#7fe0ff'; circ(g, 0, 0, 30); g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = '#ffffff'; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, 30, k * 12, k * 12 + 2); g.stroke();
+    g.rotate(k * Math.PI * 2); g.scale(0.75, 0.75); g.translate(0, 34);
+  }
   if (lvl.jedi){ drawJedi(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', shield:p.shield, t, sad: state === 'dying' }); g.restore(); return; }
   if (lvl.school){ drawKid(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', suck:p.suck, t, sad: state === 'dying' }); g.restore(); return; }
   drawKnight(g, KNIGHTS[knightId], { phase:p.phase, air:!p.onGround && state !== 'win', shield:p.shield, t, sad: state === 'dying' });
@@ -3036,7 +3091,7 @@ function drawHUD(){
     g.globalAlpha = 1;
   }
   if (lvlIndex === 0 && (state === 'play' || state === 'ready') && playT < 8){
-    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Kurz tippen = hüpfen  ·  Lang drücken = Tüte saugt (dann kein Hüpfen!)' : lvl.jedi ? 'Tippen = springen  ·  3× schnell tippen = Jedi-Doppelsprung  ·  Lang drücken = Schild' : lvl.party ? 'Kurz tippen = springen  ·  Lang drücken = Geschenk hochwerfen' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
+    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Kurz tippen = hüpfen  ·  Lang drücken = Tüte saugt (dann kein Hüpfen!)' : lvl.jedi ? 'Tippen = springen  ·  2× schnell tippen = Jedi-Rolle  ·  Lang drücken = Schild' : lvl.party ? 'Kurz tippen = springen  ·  Lang drücken = Geschenk hochwerfen' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
     g.font = `700 19px ${FONT}`; const tw = g.measureText(msg).width;
     g.globalAlpha = Math.min(1, (8 - playT) / 1);
     g.fillStyle = 'rgba(36,48,94,.82)'; rr(g, W / 2 - tw / 2 - 18, 74, tw + 36, 38, 19); g.fill();
@@ -3059,7 +3114,7 @@ function render(){
     drawPlanet(th); drawWater(th);
     drawTiles(th); drawSigns();
     if (lvl.goal) drawJediShip(lvl.goal.x, lvl.goal.y);
-    drawCrystals(); drawHealHearts(); drawEnemies(); drawProjs();
+    drawCrystals(); drawHealHearts(); drawEnemies(); drawProjs(); drawJediFx();
   } else {
     drawSky(th); drawFar(th); drawBgDragons(th); drawNear(th); drawWater(th);
     drawTiles(th); drawSigns();
@@ -3145,7 +3200,7 @@ function showScreen(id){
 const HOWTO = {
   knight: 'Dein Ritter läuft von allein. <b>Kurz tippen</b>: springen. <b>Lang drücken</b>: stehen bleiben und den Schild hochhalten. Der Schild hält Feuerbälle und Eicheln ab.',
   school: 'Dein Schulkind läuft von allein. <b>Kurz tippen</b>: hüpfen. <b>Lang drücken</b>: die Schultüte saugt Süßigkeiten ein. Aber Vorsicht: Beim Saugen kann es nicht hüpfen und fällt leicht in ein Loch!',
-  jedi: 'Dein junger Jedi läuft von allein. <b>Kurz tippen</b>: springen. <b>3× schnell tippen</b>: Jedi-Doppelsprung mit Rolle – so erreichst du die hoch schwebenden Kristalle! <b>Lang drücken</b>: stehen bleiben und das Laserschwert zum Schutzschild wirbeln. Es wirft Laserschüsse zurück.',
+  jedi: 'Dein junger Jedi läuft von allein. <b>Kurz tippen</b>: springen. <b>2× schnell tippen</b>: Jedi-Rolle – du springst in der Luft noch einmal hoch und erreichst die hoch schwebenden Kristalle. In der Rolle bist du geschützt und rollst Roboter um. Bei der Landung holt eine Machtwelle Kristalle in der Nähe heran. Rollst du gleich wieder, gibt es eine Kette mit Bonus-Kristall! <b>Lang drücken</b>: stehen bleiben und das Laserschwert zum Schutzschild wirbeln. Es wirft Laserschüsse zurück.',
   party: 'Dein Geburtstagskind läuft von allein und dreht an den Gummibärchen-Wänden um. <b>Kurz tippen</b>: springen, auch durch die Waffelböden nach oben. <b>Lang drücken</b>: das Geschenk hochwerfen und die Riesen-Süßigkeit im Schokoboden umkippen. Bring das Geschenk ganz nach oben zum Geburtstagstisch!',
   space: 'Dein Astronaut fliegt von allein. <b>Drücken</b>: nach oben schweben. <b>Loslassen</b>: langsam sinken. <b>Lang halten</b>: Schutzschild an. Er wirft Schüsse zurück und schubst Kometen weg.',
 };
