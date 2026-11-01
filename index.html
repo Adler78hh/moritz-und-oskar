@@ -1028,7 +1028,21 @@ function inFunnel(sx, sy, m, extra){
   return Math.abs(sx - m.x) <= SUCK_BASE + Math.max(0, dy) * SUCK_SPREAD + extra;
 }
 let slurpT = 0;
+function gotSweet(s, x, y){
+  s.got = true; got += s.val || 1; sfx(s.val ? 'heal' : 'star'); sparkle(x, y, SWEET_COLS[s.c % SWEET_COLS.length], s.val ? 20 : 8);
+  if (s.val) lvl.pops.push({ x, y: y - 30, txt: `+${s.val}`, life: 1.2 });
+}
+// sweets are also collected by simply touching them, walking or hopping
+function touchSweets(){
+  const cx = p.x + p.w / 2, cy = p.y - p.h / 2;
+  for (const s of lvl.sweets){
+    if (s.got) continue;
+    const r = s.val ? 52 : 40;
+    if (Math.abs(s.x - cx) < r && Math.abs(s.y - cy) < r + 14) gotSweet(s, s.x, s.y);
+  }
+}
 function suckSweets(dt){
+  touchSweets();
   if (!p.suck) return;
   slurpT -= dt; if (slurpT <= 0){ slurpT = 0.14; tone(180 + Math.random() * 60, 420, 0.12, 'sine', 0.035); }
   const m = tueteMouth();
@@ -1039,10 +1053,7 @@ function suckSweets(dt){
     const pull = Math.min(1, dt * (5 + 600 / Math.max(40, d)));
     s.x += (m.x - s.x) * pull; s.y += (m.y - s.y) * pull; s.spin = (s.spin || 0) + dt * 12;
     if (Math.random() < 0.3) addPart({ kind:'spark', x:s.x, y:s.y, vx:(m.x - s.x) * 2, vy:(m.y - s.y) * 2, life:0.25, max:0.25, g:0, size:3, color:'#ffffff' });
-    if (Math.hypot(s.x - m.x, s.y - m.y) < 18){
-      s.got = true; got += s.val || 1; sfx(s.val ? 'heal' : 'star'); sparkle(m.x, m.y, SWEET_COLS[s.c % SWEET_COLS.length], s.val ? 20 : 8);
-      if (s.val) lvl.pops.push({ x: m.x, y: m.y - 30, txt: `+${s.val}`, life: 1.2 });
-    }
+    if (Math.hypot(s.x - m.x, s.y - m.y) < 18) gotSweet(s, m.x, m.y);
   }
 }
 
@@ -3827,7 +3838,7 @@ function drawHUD(){
     g.globalAlpha = 1;
   }
   if (lvlIndex === 0 && (state === 'play' || state === 'ready') && playT < 8){
-    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Kurz tippen = hüpfen  ·  Lang drücken = Tüte saugt (dann kein Hüpfen!)' : lvl.jedi ? 'Tippen = springen  ·  2× schnell tippen = Jedi-Rolle  ·  Lang drücken = Schild' : lvl.party ? 'Kurz tippen = springen  ·  Lang drücken = Geschenk hochwerfen' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
+    const msg = lvl.space ? 'Drücken = hoch  ·  Loslassen = sinken  ·  Lang halten = Schutzschild' : lvl.school ? 'Hüpfen oder Tüte: Süßes einsammeln  ·  Lang drücken = Tüte saugt' : lvl.jedi ? 'Tippen = springen  ·  2× schnell tippen = Jedi-Rolle  ·  Lang drücken = Schild' : lvl.party ? 'Kurz tippen = springen  ·  Lang drücken = Geschenk hochwerfen' : 'Kurz tippen = springen  ·  Lang drücken = Schild';
     g.font = `700 19px ${FONT}`; const tw = g.measureText(msg).width;
     g.globalAlpha = Math.min(1, (8 - playT) / 1);
     g.fillStyle = 'rgba(36,48,94,.82)'; rr(g, W / 2 - tw / 2 - 18, 74, tw + 36, 38, 19); g.fill();
@@ -3936,7 +3947,7 @@ function showScreen(id){
 }
 const HOWTO = {
   knight: 'Dein Ritter läuft von allein. <b>Kurz tippen</b>: springen. <b>Lang drücken</b>: stehen bleiben und den Schild hochhalten. Der Schild hält Feuerbälle und Eicheln ab.',
-  school: 'Dein Schulkind läuft von allein. <b>Kurz tippen</b>: hüpfen. <b>Lang drücken</b>: die Schultüte saugt Süßigkeiten ein. Aber Vorsicht: Beim Saugen kann es nicht hüpfen und fällt leicht in ein Loch!',
+  school: 'Dein Schulkind läuft von allein. <b>Kurz tippen</b>: hüpfen. Süßigkeiten sammelst du schon, wenn du sie berührst oder zu ihnen hochhüpfst. <b>Lang drücken</b>: die Schultüte saugt Süßigkeiten von weiter oben ein. Aber Vorsicht: Beim Saugen kann es nicht hüpfen und fällt leicht in ein Loch!',
   jedi: 'Dein junger Jedi läuft von allein. <b>Kurz tippen</b>: springen. <b>2× schnell tippen</b>: Jedi-Rolle – du springst in der Luft noch einmal hoch und erreichst die hoch schwebenden Kristalle. In der Rolle bist du geschützt und rollst Roboter um. Bei der Landung holt eine Machtwelle Kristalle in der Nähe heran. Rollst du gleich wieder, gibt es eine Kette mit Bonus-Kristall! <b>Lang drücken</b>: stehen bleiben und das Laserschwert zum Schutzschild wirbeln. Es wirft Laserschüsse zurück.',
   party: 'Dein Geburtstagskind läuft von allein und dreht an den Gummibärchen-Wänden um. <b>Kurz tippen</b>: springen, auch durch die Waffelböden nach oben. <b>Lang drücken</b>: das Geschenk hochwerfen und die Riesen-Süßigkeit im Schokoboden umkippen. Bring das Geschenk ganz nach oben zum Geburtstagstisch!',
   space: 'Dein Astronaut fliegt von allein. <b>Drücken</b>: nach oben schweben. <b>Loslassen</b>: langsam sinken. <b>Lang halten</b>: Schutzschild an. Er wirft Schüsse zurück und schubst Kometen weg.',
