@@ -504,36 +504,47 @@ const SCH = {
   sComet: {w:12, 3:'           c', 7:'   *  *'},
   sComet2:{w:12, 7:'           c', 3:'   *  *'},
   sTunnel:{w:16, 1:'  AAAAAA', 7:'  AAAAAA', 3:'         AAAAAA', 9:'         AAAAAA', 4:'   * *', 6:'          * *'},
+  // low flying: moon ground with caves ('R' rock roof), 'S' giant star (5), '+' star trail, 'H' the healing heart
+  sCave:  {w:14, ground:true, 6:'  RRRRRRRRRR', 8:'     *  S', 9:'   *       *'},
+  sCaveH: {w:14, ground:true, 6:'  RRRRRRRRRR', 8:'       H', 9:'    *     *'},
+  sTrail: {w:16, ground:true, 9:'  ++++++++++++'},
+  sCrater:{w:12, ground:true, 3:'   *    *', 6:'    A  A', 9:'      S'},
   sGoal:  {w:16, 5:'      G'},
   sEnd:   {w:24},
 };
 const SLEVELS = [
   { name:'Mondbahn', sub:'Sterne, Weltraumsteine und ein kleines Ufo',
-    chunks:['sStart','sOpen','sHigh','sWall','sOpen','sLow','sWave','sWall','sUfo','sOpen','sField','sWallHi','sOpen','sJelly','sLow','sWallLo','sHigh','sGoal','sEnd'] },
+    chunks:['sStart','sOpen','sTrail','sHigh','sWall','sOpen','sCave','sWave','sWall','sUfo','sCaveH','sField','sWallHi','sOpen','sJelly','sCrater','sWallLo','sHigh','sGoal','sEnd'] },
   { name:'Planetengarten', sub:'Quallen, Ufos und ein Steintunnel',
-    chunks:['sStart','sOpen','sWall','sField','sUfo','sJelly','sWallHi','sOpen','sComet','sLow','sTunnel','sUfoLow','sWave','sWall','sJelly','sHigh','sField','sGoal','sEnd'] },
+    chunks:['sStart','sOpen','sCave','sWall','sField','sUfo','sTrail','sJelly','sWallHi','sCaveH','sComet','sLow','sTunnel','sUfoLow','sCrater','sWall','sJelly','sHigh','sCave','sGoal','sEnd'] },
   { name:'Kometensturm', sub:'Viele Kometen und flinke Ufos',
-    chunks:['sStart','sOpen','sComet','sWallLo','sUfo','sField','sComet2','sTunnel','sJelly','sUfoLow','sWallHi','sComet','sField','sUfo','sWave','sWall','sJelly','sComet2','sTunnel','sHigh','sGoal','sEnd'] },
+    chunks:['sStart','sOpen','sComet','sCrater','sWallLo','sUfo','sField','sTrail','sComet2','sTunnel','sCaveH','sJelly','sUfoLow','sWallHi','sComet','sCave','sField','sUfo','sWave','sWall','sJelly','sComet2','sTunnel','sTrail','sHigh','sGoal','sEnd'] },
 ];
 function buildSpace(i){
   const def = SLEVELS[i], th = STHEMES[i];
-  const rocks = [], stars = [], enemies = []; let goal = null, col = 0;
+  const rocks = [], stars = [], enemies = [], roofs = [], grounds = [], trails = [], heal = []; let goal = null, col = 0;
   for (const name of def.chunks){
     const ch = SCH[name];
+    if (ch.ground) grounds.push({ x0: col * T, x1: (col + ch.w) * T });
+    const rs = (ch[6] || '').indexOf('R');
+    if (rs >= 0) roofs.push({ x0: (col + rs) * T, x1: (col + ch[6].lastIndexOf('R') + 1) * T, y0: 6 * T + 4, y1: 7 * T - 2, seed: col });
+    let trail = null;
     for (let r = 0; r <= 10; r++){
       const s = ch[r] || '';
       for (let c = 0; c < s.length; c++){
-        const chr = s[c], x = (col + c) * T + T / 2, y = r * T + T / 2;
+        const chr = s[c], x = (col + c) * T + T / 2, y = ch.ground && r >= 8 ? (r === 9 ? 476 : 432) : r * T + T / 2;
         if (chr === 'A') rocks.push({ x, y, r:22 + hash((col + c) * 31 + r) * 4, seed:hash((col + c) * 13 + r * 101) });
         else if (chr === '*') stars.push({ x, y, got:false });
+        else if (chr === 'S') stars.push({ x, y, got:false, big:true, val:5 });
+        else if (chr === 'H') heal.push({ x, y, got:false });
+        else if (chr === '+'){ if (!trail){ trail = { n:0, got:0, broken:false, done:false }; trails.push(trail); } trail.n++; stars.push({ x, y, got:false, trail }); }
         else if (chr === 'u' || chr === 'j' || chr === 'c') enemies.push({ type:chr, x, y, by:y, alive:true, t:Math.random() * 3, cd:0.9, mouth:0, vx:0, vy:0, spin:0 });
         else if (chr === 'G') goal = { x, y };
       }
     }
     col += ch.w;
   }
-  const heal = [];
-  for (const frac of [1 / 2]){
+  if (!heal.length) for (const frac of [1 / 2]){
     const x0 = Math.round(col * frac) * T + T / 2;
     let best = null;
     for (let dx = 0; dx < 30 * T && !best; dx += T) for (const x of [x0 + dx, x0 - dx]) for (const y of [264, 216, 312, 168, 360, 120, 408]){
@@ -543,7 +554,7 @@ function buildSpace(i){
     }
     if (best) heal.push(best);
   }
-  return { space:true, mode:'space', i, th, rocks, stars, enemies, goal, heal, width:col * T, totalStars:stars.length, signs:[], cps:[] };
+  return { space:true, mode:'space', i, th, rocks, roofs, grounds, trails, pops:[], stars, enemies, goal, heal, width:col * T, totalStars:stars.reduce((a, s) => a + (s.val || 1), 0), signs:[], cps:[] };
 }
 function newAstro(){ return { x:80, y:264, w:32, h:44, vx:0, vy:0, shield:false, inv:0, hidden:false, rot:0, phase:0, thrust:false, onGround:false }; }
 function astroBox(){ return { x:p.x + 4, y:p.y - p.h / 2 + 4, w:p.w - 8, h:p.h - 8 }; }
@@ -568,7 +579,10 @@ function updateAstro(dt){
       if (Math.abs(r.x - cx) > 70) continue;
       if (circBox({ x:r.x, y:r.y, r:r.r - 7 }, pb)){ hurt(); break; }
     }
+    for (const r of lvl.roofs) if (p.inv <= 0 && overlap(pb, { x:r.x0 + 6, y:r.y0 + 4, w:r.x1 - r.x0 - 12, h:r.y1 - r.y0 - 4 })){ hurt(); break; }
   }
+  // star trail: surfacing before it is complete breaks it
+  if (p.y < 330) for (const tr of lvl.trails) if (tr.got > 0 && !tr.done) tr.broken = true;
 }
 function sbox(e){
   if (e.type === 'u') return { x:e.x - 28, y:e.y - 18, w:56, h:32 };
@@ -844,19 +858,60 @@ function drawAstronaut(c, k, o){
   }
   c.restore();
 }
+function drawMoonGround(th){
+  for (const gr of lvl.grounds){
+    const x0 = gr.x0 - cam, x1 = gr.x1 - cam; if (x1 < -40 || x0 > W + 40) continue;
+    g.fillStyle = th.rockDark; g.beginPath(); g.moveTo(x0 - 30, H);
+    for (let x = x0 - 30; x <= x1 + 30; x += 12){ const wx = x + cam; g.lineTo(x, 522 + Math.sin(wx * 0.021) * 6 + Math.sin(wx * 0.053) * 3 - Math.max(0, 1 - Math.abs(x - (x0 + x1) / 2) / ((x1 - x0) / 2 + 30)) * 6); }
+    g.lineTo(x1 + 30, H); g.closePath(); g.fill();
+    g.fillStyle = th.rock; g.beginPath(); g.moveTo(x0 - 20, H);
+    for (let x = x0 - 20; x <= x1 + 20; x += 12){ const wx = x + cam; g.lineTo(x, 528 + Math.sin(wx * 0.021) * 6 + Math.sin(wx * 0.053) * 3); }
+    g.lineTo(x1 + 20, H); g.closePath(); g.fill();
+    g.fillStyle = th.rockDark; for (let wx = Math.ceil(gr.x0 / 70) * 70; wx < gr.x1; wx += 70){ if (hash(wx) < 0.5) continue; ell(g, wx - cam + hash(wx + 1) * 30, 534, 12 + hash(wx + 2) * 8, 3.5); g.fill(); }
+  }
+}
+function drawRoofs(th){ // rocky cave roofs with little stalactites and a sleepy face
+  for (const r of lvl.roofs){
+    const x0 = r.x0 - cam, x1 = r.x1 - cam; if (x1 < -40 || x0 > W + 40) continue;
+    g.fillStyle = th.rock; g.strokeStyle = th.rockDark; g.lineWidth = 3; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(x0, r.y0 + 10);
+    for (let x = x0; x <= x1; x += 16){ const k = hash(Math.floor((x + cam) / 16) + r.seed); g.lineTo(x, r.y0 + 2 - k * 10); }
+    g.lineTo(x1, r.y0 + 10); g.lineTo(x1 - 4, r.y1 - 6);
+    for (let x = x1 - 4; x >= x0 + 4; x -= 22){ const k = hash(Math.floor((x + cam) / 22) * 3 + r.seed); g.lineTo(x - 5, r.y1 - 4 + k * 4); g.lineTo(x - 11, r.y1 + 8 + k * 10); g.lineTo(x - 17, r.y1 - 4); }
+    g.lineTo(x0 + 4, r.y1 - 6); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = th.rockDark; for (let x = x0 + 30; x < x1 - 20; x += 60){ ell(g, x, r.y0 + 18, 6, 4); g.fill(); }
+    const mx = (x0 + x1) / 2, my = r.y0 + 22;
+    g.strokeStyle = '#2a2440'; g.lineWidth = 2; g.lineCap = 'round';
+    g.beginPath(); g.arc(mx - 10, my, 4, 0.1 * Math.PI, 0.9 * Math.PI); g.stroke(); g.beginPath(); g.arc(mx + 10, my, 4, 0.1 * Math.PI, 0.9 * Math.PI); g.stroke();
+    g.beginPath(); g.arc(mx, my + 6, 3, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
+  }
+}
 function renderSpace(){
   const th = lvl.th;
-  drawSpaceBg(th); drawRocks(th);
+  drawSpaceBg(th); drawMoonGround(th); drawRocks(th); drawRoofs(th);
   if (lvl.goal) drawStation(lvl.goal.x, lvl.goal.y);
+  for (const tr of lvl.trails){
+    const ss = lvl.stars.filter(s => s.trail === tr && !s.got); if (ss.length < 2 || tr.broken) continue;
+    g.strokeStyle = 'rgba(255,240,170,.45)'; g.lineWidth = 3; g.setLineDash([4, 8]); g.lineDashOffset = -t * 30;
+    g.beginPath(); ss.forEach((s, k) => { const x = s.x - cam, y = s.y + Math.sin(t * 3 + s.x * 0.05) * 4; k ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]);
+  }
   for (const s of lvl.stars){
     if (s.got) continue;
-    const x = s.x - cam; if (x < -40 || x > W + 40) continue;
+    const x = s.x - cam; if (x < -60 || x > W + 60) continue;
     const sy = s.y + Math.sin(t * 3 + s.x * 0.05) * 4;
-    g.fillStyle = 'rgba(255,230,120,.28)'; circ(g, x, sy, 24 + Math.sin(t * 4 + s.x) * 2); g.fill();
-    cuteStar(g, x, sy, 17, Math.sin(t * 2 + s.x) * 0.2, '#ffd93d');
+    if (s.big){
+      for (let k = 0; k < 3; k++){ g.fillStyle = `rgba(255,${200 + k * 20},${90 + k * 40},.22)`; circ(g, x, sy, 46 - k * 10 + Math.sin(t * 5 + k) * 3); g.fill(); }
+      g.strokeStyle = 'rgba(255,240,170,.7)'; g.lineWidth = 2;
+      for (let k = 0; k < 8; k++){ const a = t * 0.8 + k * Math.PI / 4; g.beginPath(); g.moveTo(x + Math.cos(a) * 34, sy + Math.sin(a) * 34); g.lineTo(x + Math.cos(a) * 46, sy + Math.sin(a) * 46); g.stroke(); }
+      cuteStar(g, x, sy, 30, Math.sin(t * 2 + s.x) * 0.15, '#ffc93c');
+      continue;
+    }
+    g.fillStyle = s.trail && !s.trail.broken ? 'rgba(255,190,240,.32)' : 'rgba(255,230,120,.28)'; circ(g, x, sy, 24 + Math.sin(t * 4 + s.x) * 2); g.fill();
+    cuteStar(g, x, sy, s.trail ? 14 : 17, Math.sin(t * 2 + s.x) * 0.2, '#ffd93d');
   }
   drawHealHearts();
   drawSpaceEnemies();
+  drawSchoolPops();
   for (const q of projs){
     const x = q.x - cam;
     const rg = g.createRadialGradient(x, q.y, 1, x, q.y, q.r + 5);
@@ -2916,8 +2971,13 @@ function collectStars(){
   const cx = p.x + p.w / 2, cy = lvl.space ? p.y : p.y - p.h / 2;
   for (const s of lvl.stars){
     if (s.got) continue;
-    const dx = s.x - cx, dy = s.y - cy;
-    if (dx * dx + dy * dy < 36 * 36){ s.got = true; got++; sfx('star'); sparkle(s.x, s.y, '#ffd93d', 10); }
+    const dx = s.x - cx, dy = s.y - cy, R = s.big ? 50 : 36;
+    if (dx * dx + dy * dy < R * R){
+      s.got = true; got += s.val || 1; sfx(s.big ? 'heal' : 'star'); sparkle(s.x, s.y, '#ffd93d', s.big ? 24 : 10);
+      if (s.big && lvl.pops) lvl.pops.push({ x: s.x, y: s.y - 40, txt: `+${s.val}`, life: 1.3 });
+      const tr = s.trail;
+      if (tr && !tr.broken){ tr.got++; if (tr.got === tr.n){ tr.done = true; got++; sfx('heal'); confetti(s.x, s.y - 20, 30); lvl.pops.push({ x: s.x - 60, y: s.y - 60, txt: 'Sternenschweif! +1', life: 1.6 }); } }
+    }
   }
 }
 
@@ -2955,7 +3015,7 @@ function step(dt){
   } else if (state === 'play'){
     playT += dt;
     if (lvl.party){ updatePartyPlayer(dt); updateParty(dt, true); collectStars(); collectHearts(); checkPartyGoal(); partyCamera(dt, false); }
-    else if (lvl.space){ updateAstro(dt); updateSpace(dt, true); updateSpaceProjs(dt); collectStars(); collectHearts(); checkSpaceGoal(); }
+    else if (lvl.space){ updateAstro(dt); updateSpace(dt, true); updateSpaceProjs(dt); collectStars(); collectHearts(); checkSpaceGoal(); for (const q of lvl.pops){ q.life -= dt; q.y -= 40 * dt; } lvl.pops = lvl.pops.filter(q => q.life > 0); }
     else { updatePlayer(dt); updateEnemies(dt, true); updateProjs(dt); if (lvl.jedi) updateJediFx(dt); collectStars(); collectHearts(); if (lvl.school){ suckSweets(dt); updateSchoolProps(dt); } checkGoal(); }
   } else if (state === 'dying'){
     p.vy += (lvl.space ? 700 : GRAV) * dt; p.y += p.vy * dt; p.rot += dt * 7; if (lvl.space) updateSpace(dt, false); if (lvl.party) updateParty(dt, false);
