@@ -247,7 +247,7 @@ const CHARS = [
   { id:'theo', name:'The', letter:'The', word:'braun', sex:'m', color:'#8a5a35', dark:'#5e3c22', light:'#c99d74',
     hair:{ style:'bob', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'round' },
   { id:'ti', name:'Ti', letter:'Ti', word:'orangefarben', sex:'m', color:'#ff8a2a', dark:'#cf5f12', light:'#ffc99e',
-    hair:{ style:'curly', c:'#6b4428', d:'#45291a', l:'#9a6a45' }, face:'round', freckles:true },
+    hair:{ style:'zippel', c:'#7a4e2d', d:'#4e2f1a', l:'#a8774d' }, face:'round' },
 ];
 const KNIGHTS = Object.fromEntries(CHARS.map(k => [k.id, k]));
 // grammar helpers for the role names
@@ -3237,16 +3237,19 @@ function hairFront(c, h, face){
         for (const [x, y] of knots){ c.beginPath(); c.ellipse(x, y, 4.6, 3.6, Math.atan2(y + 52, x - 2) + Math.PI / 2, 0, Math.PI * 2); c.fill(); c.stroke(); }
         c.strokeStyle = h.l; c.lineWidth = 1.2; for (const [x, y] of knots){ c.beginPath(); c.arc(x - 1, y - 1, 2, Math.PI, Math.PI * 1.6); c.stroke(); } }
       break;
-    case 'curly': // a fluffy cap of round brown curls
-      { const curls = [];
-        for (let k = 0; k <= 9; k++){ const an = Math.PI * (0.92 + k * 0.125); curls.push([2 + Math.cos(an) * 14.5, -53 + Math.sin(an) * 14.5, k === 0 || k === 9 ? 4.6 : 5.6]); }
-        curls.push([-6, -61, 5.2], [2, -63, 5.4], [10, -61, 5], [-11, -51, 4.4]);
-        c.lineJoin = 'round'; c.strokeStyle = h.d; c.lineWidth = 3;
-        for (const [x, y, r] of curls){ c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.stroke(); }
-        c.fillStyle = h.c; for (const [x, y, r] of curls){ c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
-        c.strokeStyle = h.l; c.lineWidth = 1.2;
-        for (const [x, y, r] of curls.slice(1, 9)){ c.beginPath(); c.arc(x - 0.5, y - 0.5, r * 0.55, Math.PI * 1.05, Math.PI * 1.7); c.stroke(); }
-      }
+    case 'zippel': // brown, normal length down to the ears, a little tousled with uneven tips
+      c.beginPath(); c.moveTo(-14, -40);
+      c.lineTo(-16, -45); c.lineTo(-14.5, -47); c.quadraticCurveTo(-20, -55, -15, -61);
+      c.lineTo(-19, -64); c.lineTo(-12, -66); c.quadraticCurveTo(-9, -72, -3, -71);
+      c.lineTo(-2, -77); c.lineTo(2, -71.5); c.quadraticCurveTo(7, -73, 10, -70.5);
+      c.lineTo(15, -73); c.lineTo(14, -67); c.quadraticCurveTo(19, -63, 18.5, -57);
+      c.lineTo(20, -52); c.lineTo(16, -54);
+      c.lineTo(13.5, -57); c.lineTo(11, -54); c.lineTo(8.5, -58.5); c.lineTo(5, -55); c.lineTo(2.5, -59.5); c.lineTo(-1, -56);
+      c.quadraticCurveTo(-4.5, -53, -5.5, -47); c.lineTo(-7.5, -42); c.lineTo(-10, -45); c.lineTo(-11, -39);
+      c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = h.d; c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(-11, -58); c.quadraticCurveTo(-8, -52, -10, -46); c.moveTo(6, -68); c.quadraticCurveTo(10, -64, 12, -60); c.moveTo(-4, -67); c.quadraticCurveTo(0, -64, 1, -60); c.stroke();
+      c.strokeStyle = h.l; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-12, -60); c.quadraticCurveTo(-7, -67, 1, -67.5); c.stroke();
       break;
     case 'longwavy':
       c.beginPath(); c.moveTo(-14, -42);
@@ -3257,7 +3260,7 @@ function hairFront(c, h, face){
       c.strokeStyle = h.l; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-11, -60); c.quadraticCurveTo(-5, -66, 3, -65); c.stroke();
       break;
   }
-  if (h.style !== 'buzz' && h.style !== 'mohawk' && h.style !== 'bob' && h.style !== 'long' && h.style !== 'longwavy' && h.style !== 'wavy' && h.style !== 'curly'){
+  if (h.style !== 'buzz' && h.style !== 'mohawk' && h.style !== 'bob' && h.style !== 'long' && h.style !== 'longwavy' && h.style !== 'wavy' && h.style !== 'zippel'){
     c.strokeStyle = h.l; c.lineWidth = 2; c.beginPath(); c.moveTo(-9, -60); c.quadraticCurveTo(-4, -66, 2, -66); c.stroke();
   }
 }
