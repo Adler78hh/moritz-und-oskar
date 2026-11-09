@@ -232,24 +232,22 @@ const CHARS = [
     hair:{ style:'spiky', curl:true, c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
   { id:'oskar', name:'Os', letter:'Os', word:'rot', sex:'m', color:'#e8443a', dark:'#a92a2a', light:'#ff9d8f',
     hair:{ style:'spiky', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
-  { id:'kilian', name:'Ki', letter:'Ki', word:'bordeauxrot', sex:'m', color:'#8e1f3a', dark:'#5e1226', light:'#d77a91',
-    hair:{ style:'wavy', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'long' },
-  { id:'finnc', name:'Finn', letter:'Finn', word:'gelb', sex:'m', color:'#f2c230', dark:'#c4931a', light:'#ffe58a', ink:'#7a4a00',
-    hair:{ style:'short', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'long' },
-  { id:'theo', name:'The', letter:'The', word:'braun', sex:'m', color:'#8a5a35', dark:'#5e3c22', light:'#c99d74',
-    hair:{ style:'bob', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'round' },
-  { id:'oskarw', name:'Os W.', letter:'Os', word:'grün', sex:'m', color:'#2f9e4f', dark:'#1f6e36', light:'#8fdca6',
-    hair:{ style:'mohawk', c:'#fff0a6', d:'#e0c25a', l:'#ffffff' }, face:'pointy' },
   { id:'finniv', name:'Fin', letter:'Fin', word:'lindgrün', sex:'m', color:'#9ad93a', dark:'#6aa21c', light:'#d6f59e', ink:'#3d5a0a',
     hair:{ style:'buzz', c:'#b0805a', d:'#8a5f3e', l:'#cfa47e' }, face:'round' },
-  { id:'lenia', name:'Le', letter:'Le', word:'rosa', sex:'f', color:'#ff8fb8', dark:'#d9558a', light:'#ffd0e2',
-    hair:{ style:'long', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round', glasses:true },
+  { id:'finnc', name:'Finn', letter:'Finn', word:'gelb', sex:'m', color:'#f2c230', dark:'#c4931a', light:'#ffe58a', ink:'#7a4a00',
+    hair:{ style:'short', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'long' },
   { id:'freya', name:'Fre', letter:'Fre', word:'lila', sex:'f', color:'#8b5cd6', dark:'#5f3aa0', light:'#cbb2f5',
     hair:{ style:'longwavy', c:'#5a3a28', d:'#3a2418', l:'#8a5f45' }, face:'round' },
-  { id:'ida', name:'Id', letter:'Id', word:'taubenblau', sex:'f', color:'#6c9be0', dark:'#3f6db3', light:'#c4d8f7',
-    hair:{ style:'braid', c:'#ffd447', d:'#e0a92a', l:'#fff1a6', tie:'#3f6db3' }, face:'round' },
-  { id:'lu', name:'Lu', letter:'Lu', word:'türkisfarben', sex:'m', color:'#25c2b3', dark:'#168478', light:'#a8eee6',
-    hair:{ style:'kevin', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round' },
+  { id:'kilian', name:'Ki', letter:'Ki', word:'bordeauxrot', sex:'m', color:'#8e1f3a', dark:'#5e1226', light:'#d77a91',
+    hair:{ style:'wavy', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'long' },
+  { id:'lenia', name:'Le', letter:'Le', word:'rosa', sex:'f', color:'#ff8fb8', dark:'#d9558a', light:'#ffd0e2',
+    hair:{ style:'long', c:'#ffd447', d:'#e0a92a', l:'#fff1a6' }, face:'round', glasses:true },
+  { id:'oskarw', name:'Os W.', letter:'Os', word:'grün', sex:'m', color:'#2f9e4f', dark:'#1f6e36', light:'#8fdca6',
+    hair:{ style:'mohawk', c:'#fff0a6', d:'#e0c25a', l:'#ffffff' }, face:'pointy' },
+  { id:'theo', name:'The', letter:'The', word:'braun', sex:'m', color:'#8a5a35', dark:'#5e3c22', light:'#c99d74',
+    hair:{ style:'bob', c:'#c9a05a', d:'#987434', l:'#e6c991' }, face:'round' },
+  { id:'ti', name:'Ti', letter:'Ti', word:'orangefarben', sex:'m', color:'#ff8a2a', dark:'#cf5f12', light:'#ffc99e',
+    hair:{ style:'curly', c:'#6b4428', d:'#45291a', l:'#9a6a45' }, face:'round', freckles:true },
 ];
 const KNIGHTS = Object.fromEntries(CHARS.map(k => [k.id, k]));
 // grammar helpers for the role names
@@ -3239,6 +3237,17 @@ function hairFront(c, h, face){
         for (const [x, y] of knots){ c.beginPath(); c.ellipse(x, y, 4.6, 3.6, Math.atan2(y + 52, x - 2) + Math.PI / 2, 0, Math.PI * 2); c.fill(); c.stroke(); }
         c.strokeStyle = h.l; c.lineWidth = 1.2; for (const [x, y] of knots){ c.beginPath(); c.arc(x - 1, y - 1, 2, Math.PI, Math.PI * 1.6); c.stroke(); } }
       break;
+    case 'curly': // a fluffy cap of round brown curls
+      { const curls = [];
+        for (let k = 0; k <= 9; k++){ const an = Math.PI * (0.92 + k * 0.125); curls.push([2 + Math.cos(an) * 14.5, -53 + Math.sin(an) * 14.5, k === 0 || k === 9 ? 4.6 : 5.6]); }
+        curls.push([-6, -61, 5.2], [2, -63, 5.4], [10, -61, 5], [-11, -51, 4.4]);
+        c.lineJoin = 'round'; c.strokeStyle = h.d; c.lineWidth = 3;
+        for (const [x, y, r] of curls){ c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.stroke(); }
+        c.fillStyle = h.c; for (const [x, y, r] of curls){ c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+        c.strokeStyle = h.l; c.lineWidth = 1.2;
+        for (const [x, y, r] of curls.slice(1, 9)){ c.beginPath(); c.arc(x - 0.5, y - 0.5, r * 0.55, Math.PI * 1.05, Math.PI * 1.7); c.stroke(); }
+      }
+      break;
     case 'longwavy':
       c.beginPath(); c.moveTo(-14, -42);
       c.quadraticCurveTo(-21, -58, -12, -66); c.quadraticCurveTo(-4, -73, 6, -69); c.quadraticCurveTo(16, -70, 18, -60);
@@ -3248,7 +3257,7 @@ function hairFront(c, h, face){
       c.strokeStyle = h.l; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-11, -60); c.quadraticCurveTo(-5, -66, 3, -65); c.stroke();
       break;
   }
-  if (h.style !== 'buzz' && h.style !== 'mohawk' && h.style !== 'bob' && h.style !== 'long' && h.style !== 'longwavy' && h.style !== 'wavy'){
+  if (h.style !== 'buzz' && h.style !== 'mohawk' && h.style !== 'bob' && h.style !== 'long' && h.style !== 'longwavy' && h.style !== 'wavy' && h.style !== 'curly'){
     c.strokeStyle = h.l; c.lineWidth = 2; c.beginPath(); c.moveTo(-9, -60); c.quadraticCurveTo(-4, -66, 2, -66); c.stroke();
   }
 }
@@ -3266,6 +3275,10 @@ function drawHeroHead(c, k, o){
   else {
     c.beginPath(); c.ellipse(6, ey, 2.4, 3.3, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(12.5, ey, 2.4, 3.3, 0, 0, 7); c.fill();
     c.fillStyle = '#fff'; c.beginPath(); c.arc(6.8, ey - 1.3, 0.9, 0, 7); c.fill(); c.beginPath(); c.arc(13.3, ey - 1.3, 0.9, 0, 7); c.fill();
+  }
+  if (k.freckles){
+    c.fillStyle = 'rgba(160,90,50,.75)';
+    for (const [x, y] of [[0, -46], [3, -44.5], [1.5, -48], [12, -46], [15, -44.5], [16, -47.5], [8.5, -47]]){ c.beginPath(); c.arc(x, y, 0.75, 0, 7); c.fill(); }
   }
   if (k.glasses){
     c.strokeStyle = '#d63a3a'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(1.5, ey - 1); c.lineTo(-4, ey - 2.5); c.stroke(); // red arm to the ear
