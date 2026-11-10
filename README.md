@@ -1,6 +1,6 @@
 # Mo und Os Abenteuer
 
-Ein-Knopf-Spiel für Kinder. Zehn Figuren (Mo, Os, Fin, Finn, Fre, Ki, Le, Os W., The, Ti)
+Ein-Knopf-Spiel für Kinder. Zehn Figuren (Mo, Os, Fi, Fi, Fr, Ki, Le, Os, Th, Ti)
 spielen als Ritter, Geburtstagskind, Astronaut, Schulkind in Bützow oder junger Jedi – je drei Level,
 eigene Profile und Rekorde pro Figur.
 
